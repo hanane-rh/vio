@@ -6,12 +6,12 @@ import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { AvatarDisplay } from '../components/avatar-display';
-import { useUser } from '../context/user-context';
+import { useUser } from '../../context/user-context';
 import { Task } from '../types/avatar';
 import { AVATAR_MESSAGES } from '../types/avatar';
 import { toast } from 'sonner';
 import { Link } from 'react-router';
-import { apiService } from '../services/api'; // API: Added
+import { apiService } from '../../services/api'; // API: Added
 
 export function Dashboard() {
   const { profile } = useUser();

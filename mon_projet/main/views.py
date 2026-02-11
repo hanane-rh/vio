@@ -1,4 +1,4 @@
-# carepath/views.py
+# vio/views.py
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -6,20 +6,21 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.utils import timezone
-from datetime import datetime, timedelta
-
+from datetime import datetime, timedelta, date
 from .models import (
-    AvatarConfig, UserProfile, Task, ConstellationStar,
-    UserState, AdaptiveChallenge, FutureSelfMessage
+    AvatarConfig, TreatmentInfo, TaskTemplate, Task,
+    UserProfile, UserState, ConstellationStar, FutureSelfMessage
 )
 from .serializers import (
-    AvatarConfigSerializer, UserProfileSerializer, TaskSerializer,
-    ConstellationStarSerializer, UserStateSerializer, AdaptiveChallengeSerializer,
-    FutureSelfMessageSerializer, UserRegistrationSerializer
+    AvatarConfigSerializer, TreatmentInfoSerializer, TaskTemplateSerializer,
+    TaskSerializer, UserProfileSerializer, UserStateSerializer,
+    ConstellationStarSerializer, FutureSelfMessageSerializer,
+    UserRegistrationSerializer, OnboardingDataSerializer
 )
 
 
-# ============= AUTH ENDPOINTS =============
+# ============= AUTHENTICATION ENDPOINTS =============
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
@@ -33,7 +34,7 @@ def register(request):
             'username': user.username,
             'email': user.email,
             'token': token.key,
-            'message': 'User created successfully'
+            'message': 'User created successfully - Complete onboarding next'
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -84,37 +85,59 @@ def logout(request):
     }, status=status.HTTP_200_OK)
 
 
-# ============= AVATAR CONFIG ENDPOINTS =============
-class AvatarConfigViewSet(viewsets.ModelViewSet):
-    serializer_class = AvatarConfigSerializer
-    permission_classes = [IsAuthenticated]
+# ============= TASK GENERATION LOGIC =============
+
+def generate_daily_tasks(user, target_date=None):
+    """
+    Génère les tâches quotidiennes basées sur les templates
+    Logique intelligente: Médication 1x/semaine lundi + 2x/jour = jour 1: 3 tâches, jour 2-6: 2, jour 7: 3
+    """
+    if target_date is None:
+        target_date = date.today()
     
-    def get_queryset(self):
-        return AvatarConfig.objects.filter(user=self.request.user)
+    # Récupérer tous les templates actifs de l'utilisateur
+    templates = TaskTemplate.objects.filter(
+        user=user,
+        start_date__lte=target_date
+    ).exclude(end_date__lt=target_date)
     
-    @action(detail=False, methods=['get', 'post'])
-    def current(self, request):
-        """Get or create current user's avatar config"""
-        try:
-            avatar = AvatarConfig.objects.get(user=request.user)
-            if request.method == 'POST':
-                serializer = self.get_serializer(avatar, data=request.data, partial=True)
-                if serializer.is_valid():
-                    serializer.save()
-                    return Response(serializer.data, status=status.HTTP_200_OK)
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                serializer = self.get_serializer(avatar)
-                return Response(serializer.data)
-        except AvatarConfig.DoesNotExist:
-            if request.method == 'POST':
-                avatar = AvatarConfig.objects.create(user=request.user, **request.data)
-                serializer = self.get_serializer(avatar)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response({'error': 'Avatar not found'}, status=status.HTTP_404_NOT_FOUND)
+    tasks_created = []
+    
+    for template in templates:
+        # Vérifier si cette tâche doit apparaître aujourd'hui
+        if not template.should_appear_on_date(target_date):
+            continue
+        
+        # Vérifier qu'on ne crée pas de doublon
+        existing_task = Task.objects.filter(
+            user=user,
+            title=template.title,
+            date=target_date,
+            timing=template.timing
+        ).exists()
+        
+        if existing_task:
+            continue
+        
+        # Créer la tâche
+        task = Task.objects.create(
+            user=user,
+            template=template,
+            title=template.title,
+            description=template.description,
+            timing=template.timing,
+            dosage=template.dosage,
+            quantity=template.quantity,
+            date=target_date,
+            is_important=template.is_important
+        )
+        tasks_created.append(task)
+    
+    return tasks_created
 
 
-# ============= USER PROFILE ENDPOINTS =============
+# ============= PROFILE ENDPOINTS =============
+
 class UserProfileViewSet(viewsets.ModelViewSet):
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
@@ -136,28 +159,166 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def complete_onboarding(self, request):
-        """Mark onboarding as complete and create avatar"""
-        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        """
+        Complete the entire onboarding process
+        Crée avatar + treatment info + task templates + génère les tâches du jour
+        """
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
         
-        # Create or update avatar config
-        avatar_data = request.data.get('avatar', {})
-        avatar, avatar_created = AvatarConfig.objects.get_or_create(user=request.user)
+        try:
+            # Parser les données
+            serializer = OnboardingDataSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            data = serializer.validated_data
+            
+            # 1. Créer/Mettre à jour Avatar Config
+            avatar, _ = AvatarConfig.objects.get_or_create(user=request.user)
+            avatar.name = data['avatar_name']
+            avatar.appearance = data['avatar_appearance']
+            avatar.expression = data['avatar_expression']
+            avatar.tone = data['avatar_tone']
+            avatar.save()
+            
+            # 2. Créer/Mettre à jour Treatment Info
+            treatment_info, _ = TreatmentInfo.objects.get_or_create(user=request.user)
+            treatment_info.diagnosis = data.get('diagnosis', '')
+            treatment_info.treatment_type = data.get('treatment_type', '')
+            treatment_info.doctor_name = data.get('doctor_name', '')
+            treatment_info.hospital = data.get('hospital', '')
+            treatment_info.start_date = data['start_date']
+            treatment_info.duration_weeks = data['duration_weeks']
+            treatment_info.notes = data.get('notes', '')
+            treatment_info.save()
+            
+            # 3. Créer les Task Templates
+            task_templates_data = data.get('task_templates', [])
+            for template_data in task_templates_data:
+                TaskTemplate.objects.create(
+                    user=request.user,
+                    title=template_data.get('title'),
+                    description=template_data.get('description', ''),
+                    frequency=template_data.get('frequency', 'daily'),
+                    custom_frequency_days=template_data.get('custom_frequency_days'),
+                    timing=template_data.get('timing', 'anytime'),
+                    monday=template_data.get('monday', True),
+                    tuesday=template_data.get('tuesday', True),
+                    wednesday=template_data.get('wednesday', True),
+                    thursday=template_data.get('thursday', True),
+                    friday=template_data.get('friday', True),
+                    saturday=template_data.get('saturday', True),
+                    sunday=template_data.get('sunday', True),
+                    dosage=template_data.get('dosage', ''),
+                    quantity=template_data.get('quantity', ''),
+                    is_important=template_data.get('is_important', False),
+                    end_date=treatment_info.end_date
+                )
+            
+            # 4. Mettre à jour le profil
+            profile.avatar_config = avatar
+            profile.has_completed_onboarding = True
+            profile.onboarding_step = 5  # Completed
+            profile.save()
+            
+            # 5. Générer les tâches pour aujourd'hui et les 7 prochains jours
+            for i in range(8):
+                target_date = date.today() + timedelta(days=i)
+                generate_daily_tasks(request.user, target_date)
+            
+            result_serializer = UserProfileSerializer(profile)
+            return Response({
+                'status': 'onboarding_completed',
+                'profile': result_serializer.data,
+                'message': 'Onboarding completed! Tasks generated.'
+            }, status=status.HTTP_200_OK)
         
-        avatar.name = avatar_data.get('name', 'Your Future Self')
-        avatar.appearance = avatar_data.get('appearance', 'gentle')
-        avatar.expression = avatar_data.get('expression', 'warm')
-        avatar.tone = avatar_data.get('tone', 'encouraging')
-        avatar.save()
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ============= AVATAR ENDPOINTS =============
+
+class AvatarConfigViewSet(viewsets.ModelViewSet):
+    serializer_class = AvatarConfigSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return AvatarConfig.objects.filter(user=self.request.user)
+    
+    @action(detail=False, methods=['get', 'post'])
+    def current(self, request):
+        """Get or update current user's avatar"""
+        avatar, created = AvatarConfig.objects.get_or_create(user=request.user)
         
-        profile.avatar_config = avatar
-        profile.has_completed_onboarding = True
-        profile.save()
+        if request.method == 'POST':
+            serializer = self.get_serializer(avatar, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            serializer = self.get_serializer(avatar)
+            return Response(serializer.data)
+
+
+# ============= TREATMENT INFO ENDPOINTS =============
+
+class TreatmentInfoViewSet(viewsets.ModelViewSet):
+    serializer_class = TreatmentInfoSerializer
+    permission_classes = [IsAuthenticated]
+    
+    @action(detail=False, methods=['get', 'post'])
+    def current(self, request):
+        """Get or update treatment info"""
+        treatment_info, created = TreatmentInfo.objects.get_or_create(user=request.user)
         
-        serializer = self.get_serializer(profile)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        if request.method == 'POST':
+            serializer = self.get_serializer(treatment_info, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            serializer = self.get_serializer(treatment_info)
+            return Response(serializer.data)
+
+
+# ============= TASK TEMPLATE ENDPOINTS =============
+
+class TaskTemplateViewSet(viewsets.ModelViewSet):
+    serializer_class = TaskTemplateSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return TaskTemplate.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+    
+    @action(detail=False, methods=['post'])
+    def regenerate_future_tasks(self, request):
+        """Régénère les tâches pour les 7 prochains jours"""
+        # Supprimer les futures tasks (optionnel)
+        Task.objects.filter(
+            user=request.user,
+            date__gt=date.today()
+        ).delete()
+        
+        # Régénérer
+        for i in range(1, 8):
+            target_date = date.today() + timedelta(days=i)
+            generate_daily_tasks(request.user, target_date)
+        
+        return Response({
+            'message': 'Tasks regenerated for the next 7 days'
+        })
 
 
 # ============= TASK ENDPOINTS =============
+
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
@@ -171,30 +332,47 @@ class TaskViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def today(self, request):
         """Get today's tasks"""
-        today = timezone.now().date()
+        today = date.today()
         tasks = self.get_queryset().filter(date=today)
         serializer = self.get_serializer(tasks, many=True)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
-    def daily(self, request):
-        """Get all daily tasks for today"""
-        today = timezone.now().date()
-        tasks = self.get_queryset().filter(date=today, task_type='daily')
-        serializer = self.get_serializer(tasks, many=True)
-        return Response(serializer.data)
+    def by_date(self, request):
+        """Get tasks by date (query param: date=2025-02-10)"""
+        target_date_str = request.query_params.get('date')
+        if not target_date_str:
+            return Response({'error': 'Please provide date parameter'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+            tasks = self.get_queryset().filter(date=target_date)
+            serializer = self.get_serializer(tasks, many=True)
+            return Response(serializer.data)
+        except ValueError:
+            return Response({'error': 'Invalid date format (use YYYY-MM-DD)'}, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=False, methods=['get'])
-    def challenges(self, request):
-        """Get all challenge tasks for today"""
-        today = timezone.now().date()
-        tasks = self.get_queryset().filter(date=today, task_type='challenge')
-        serializer = self.get_serializer(tasks, many=True)
-        return Response(serializer.data)
+    @action(detail=False, methods=['post'])
+    def init_today_tasks(self, request):
+        """Initialiser les tâches d'aujourd'hui"""
+        today = date.today()
+        
+        # Vérifier si les tâches d'aujourd'hui existent déjà
+        has_today = Task.objects.filter(user=request.user, date=today).exists()
+        
+        if not has_today:
+            generate_daily_tasks(request.user, today)
+        
+        today_tasks = Task.objects.filter(user=request.user, date=today)
+        serializer = self.get_serializer(today_tasks, many=True)
+        return Response({
+            'message': 'Today\'s tasks initialized',
+            'tasks': serializer.data
+        })
     
     @action(detail=True, methods=['post'])
     def toggle_completion(self, request, pk=None):
-        """Toggle task completion status"""
+        """Toggle task completion"""
         task = self.get_object()
         task.completed = not task.completed
         if task.completed:
@@ -204,84 +382,18 @@ class TaskViewSet(viewsets.ModelViewSet):
         task.save()
         
         serializer = self.get_serializer(task)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    @action(detail=False, methods=['post'])
-    def initialize_today(self, request):
-        """Initialize today's tasks if they don't exist"""
-        today = timezone.now().date()
-        has_today = Task.objects.filter(user=request.user, date=today).exists()
-        
-        if not has_today:
-            daily_templates = [
-                {'title': 'Morning medication', 'description': 'Take prescribed morning doses', 'type': 'daily', 'priority': 'high'},
-                {'title': 'Physical therapy exercises', 'description': '15-minute routine', 'type': 'daily', 'priority': 'high'},
-                {'title': 'Healthy breakfast', 'description': 'Nourish your body well', 'type': 'daily', 'priority': 'medium'},
-                {'title': 'Evening medication', 'description': 'Take prescribed evening doses', 'type': 'daily', 'priority': 'high'},
-                {'title': 'Hydration check', 'description': 'Drink 8 glasses of water', 'type': 'daily', 'priority': 'medium'},
-                {'title': 'Rest period', 'description': 'Take time to relax', 'type': 'daily', 'priority': 'low'},
-            ]
-            
-            challenge_templates = [
-                {'title': 'Complete a mindfulness meditation', 'description': 'Take 20 minutes for deep reflection', 'type': 'challenge', 'priority': 'medium'},
-                {'title': 'Write a gratitude journal entry', 'description': 'Reflect on three things you\'re grateful for', 'type': 'challenge', 'priority': 'low'},
-                {'title': 'Connect with a support person', 'description': 'Call or message someone who supports your journey', 'type': 'challenge', 'priority': 'medium'},
-                {'title': 'Learn something new about your health', 'description': 'Read an article or watch a video', 'type': 'challenge', 'priority': 'low'},
-                {'title': 'Do an extra wellness activity', 'description': 'Gentle yoga, stretching, or a short walk', 'type': 'challenge', 'priority': 'low'},
-            ]
-            
-            all_tasks = daily_templates + challenge_templates
-            tasks = [Task(
-                user=request.user,
-                title=t['title'],
-                description=t['description'],
-                task_type=t['type'],
-                priority=t['priority']
-            ) for t in all_tasks]
-            
-            Task.objects.bulk_create(tasks)
-        
-        today_tasks = Task.objects.filter(user=request.user, date=today)
-        serializer = self.get_serializer(today_tasks, many=True)
-        return Response({
-            'message': 'Today\'s tasks initialized',
-            'tasks': serializer.data
-        }, status=status.HTTP_200_OK)
-
-
-# ============= CONSTELLATION STAR ENDPOINTS =============
-class ConstellationStarViewSet(viewsets.ModelViewSet):
-    serializer_class = ConstellationStarSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        return ConstellationStar.objects.filter(user=self.request.user)
-    
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-    
-    @action(detail=False, methods=['get'])
-    def stats(self, request):
-        """Get constellation statistics"""
-        stars = self.get_queryset()
-        stats = {
-            'difficult-day': stars.filter(star_type='difficult-day').count(),
-            'milestone': stars.filter(star_type='milestone').count(),
-            'return': stars.filter(star_type='return').count(),
-            'emotional-challenge': stars.filter(star_type='emotional-challenge').count(),
-            'total': stars.count(),
-        }
-        return Response(stats)
+        return Response(serializer.data)
 
 
 # ============= USER STATE ENDPOINTS =============
+
 class UserStateViewSet(viewsets.ModelViewSet):
     serializer_class = UserStateSerializer
     permission_classes = [IsAuthenticated]
     
     @action(detail=False, methods=['get', 'post'])
     def current(self, request):
-        """Get or update current user state"""
+        """Get or update user state"""
         user_state, created = UserState.objects.get_or_create(user=request.user)
         
         if request.method == 'POST':
@@ -295,41 +407,34 @@ class UserStateViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
 
 
-# ============= ADAPTIVE CHALLENGE ENDPOINTS =============
-class AdaptiveChallengeViewSet(viewsets.ModelViewSet):
-    serializer_class = AdaptiveChallengeSerializer
+# ============= CONSTELLATION ENDPOINTS =============
+
+class ConstellationStarViewSet(viewsets.ModelViewSet):
+    serializer_class = ConstellationStarSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return AdaptiveChallenge.objects.filter(user=self.request.user)
+        return ConstellationStar.objects.filter(user=self.request.user)
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
     
     @action(detail=False, methods=['get'])
-    def today(self, request):
-        """Get today's adaptive challenges"""
-        today = timezone.now().date()
-        challenges = self.get_queryset().filter(date=today)
-        serializer = self.get_serializer(challenges, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=True, methods=['post'])
-    def toggle_completion(self, request, pk=None):
-        """Toggle challenge completion status"""
-        challenge = self.get_object()
-        challenge.completed = not challenge.completed
-        if challenge.completed:
-            challenge.completed_at = timezone.now()
-        else:
-            challenge.completed_at = None
-        challenge.save()
-        
-        serializer = self.get_serializer(challenge)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def stats(self, request):
+        """Get constellation stats"""
+        stars = self.get_queryset()
+        stats = {
+            'difficult-day': stars.filter(star_type='difficult-day').count(),
+            'milestone': stars.filter(star_type='milestone').count(),
+            'return': stars.filter(star_type='return').count(),
+            'emotional-challenge': stars.filter(star_type='emotional-challenge').count(),
+            'total': stars.count(),
+        }
+        return Response(stats)
 
 
 # ============= FUTURE SELF MESSAGE ENDPOINTS =============
+
 class FutureSelfMessageViewSet(viewsets.ModelViewSet):
     serializer_class = FutureSelfMessageSerializer
     permission_classes = [IsAuthenticated]
@@ -339,35 +444,7 @@ class FutureSelfMessageViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def unlocked(self, request):
-        """Get all unlocked messages"""
+        """Get unlocked messages"""
         messages = self.get_queryset().filter(is_unlocked=True)
         serializer = self.get_serializer(messages, many=True)
         return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'])
-    def check_unlocks(self, request):
-        """Check and unlock messages based on progress"""
-        # Calcul du progrès global
-        today = timezone.now().date()
-        total_tasks = Task.objects.filter(user=request.user, date=today).count()
-        completed_tasks = Task.objects.filter(user=request.user, date=today, completed=True).count()
-        
-        progress = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
-        overall_progress = min(progress * 2, 100)
-        
-        messages = self.get_queryset()
-        unlocked_messages = []
-        
-        for message in messages:
-            if overall_progress >= message.unlock_progress and not message.is_unlocked:
-                message.is_unlocked = True
-                message.unlocked_at = timezone.now()
-                message.save()
-                unlocked_messages.append(message)
-        
-        serializer = self.get_serializer(self.get_queryset(), many=True)
-        return Response({
-            'overall_progress': overall_progress,
-            'unlocked_count': len(unlocked_messages),
-            'messages': serializer.data
-        })

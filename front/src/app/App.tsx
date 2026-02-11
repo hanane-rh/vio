@@ -1,30 +1,17 @@
-import { RouterProvider } from 'react-router';
-import { router } from './routes';
+// src/app/App.tsx - VERSION CORRIGÉE
+
+import { RouterProvider } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import { EncouragementSystem } from './components/encouragement-system';
-import { UserProvider, useUser } from './context/user-context';
-import { Onboarding } from './components/onboarding';
-
-function AppContent() {
-  const { profile, setProfile } = useUser();
-
-  if (!profile?.hasCompletedOnboarding) {
-    return <Onboarding onComplete={setProfile} />;
-  }
-
-  return (
-    <>
-      <RouterProvider router={router} />
-      <Toaster position="top-center" />
-      <EncouragementSystem />
-    </>
-  );
-}
+import { UserProvider } from '../context/user-context';
+import { router } from './routes';
 
 export default function App() {
   return (
     <UserProvider>
-      <AppContent />
+      <RouterProvider router={router} />
+      <Toaster position="top-center" />
+      <EncouragementSystem />
     </UserProvider>
   );
 }

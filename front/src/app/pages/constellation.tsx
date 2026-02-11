@@ -8,7 +8,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { AvatarDisplay } from '../components/avatar-display';
-import { useUser } from '../context/user-context';
+import { useUser } from '../../context/user-context';
 import { AVATAR_MESSAGES } from '../types/avatar';
 
 interface ConstellationStar {

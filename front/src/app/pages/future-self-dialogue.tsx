@@ -6,7 +6,7 @@ import { Card } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
 import { toast } from 'sonner';
 import { AvatarDisplay } from '../components/avatar-display';
-import { useUser } from '../context/user-context';
+import { useUser } from '../../context/user-context';
 
 interface TreatmentAction {
   id: string;

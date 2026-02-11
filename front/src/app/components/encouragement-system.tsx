@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { useUser } from '../context/user-context';
+import { useUser } from '../../context/user-context';
 
 const ENCOURAGEMENT_MESSAGES = [
   "You're doing amazing. Every small step counts.",

@@ -1,3 +1,5 @@
+// src/app/types/avatar.ts - VÉRIFIEZ QUE VOUS AVEZ CECI
+
 export interface AvatarConfig {
   appearance: 'youthful' | 'mature' | 'gentle' | 'energetic';
   expression: 'warm' | 'hopeful' | 'peaceful' | 'joyful';
@@ -5,14 +7,15 @@ export interface AvatarConfig {
   name?: string;
 }
 
+// ⚠️ IMPORTANT: hasCompletedOnboarding (avec 'Completed')
 export interface UserProfile {
-  hasCompletedOnboarding: boolean;
-  avatar: AvatarConfig;
-  startDate: string;
+  id?: number;
+  hasCompletedOnboarding: boolean;  // ← DOIT ÊTRE COMME ÇA!
+  avatar?: AvatarConfig;
+  startDate?: string;
 }
 
 export interface Task {
-  task_type: string;
   id: string;
   title: string;
   description: string;
@@ -47,7 +50,7 @@ export const AVATAR_MESSAGES = {
   taskComplete: {
     encouraging: [
       "Thank you for being consistent!",
-      "You're making real progress — I'm so proud!",
+      "You're making real progress – I'm so proud!",
       "Every step counts, and you're taking them beautifully.",
       "Your dedication is building a healthier future for us.",
     ],
@@ -59,19 +62,19 @@ export const AVATAR_MESSAGES = {
     ],
     inspiring: [
       "Because you completed this, I am healthier and thriving!",
-      "You're making a real difference for your recovery — well done!",
+      "You're making a real difference for your recovery – well done!",
       "Look at what we're accomplishing together!",
       "Your persistence is creating lasting change.",
     ],
     celebratory: [
-      "Yes! Another step forward — amazing!",
+      "Yes! Another step forward – amazing!",
       "You did it! This is fantastic progress!",
       "Incredible! You're building something beautiful!",
       "Wonderful work! Keep this momentum going!",
     ],
   },
   constellationGrowth: [
-    "Look at your constellation! Each star shows the effort you've put in — you're doing amazing.",
+    "Look at your constellation! Each star shows the effort you've put in – you're doing amazing.",
     "Your constellation is growing more beautiful with each step you take.",
     "Every star represents a moment of courage. Look how many you've collected!",
     "This constellation is the map of your resilience journey. It's breathtaking.",

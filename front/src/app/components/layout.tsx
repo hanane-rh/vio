@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router';
 import { Heart, Sparkles, Star, Zap, Home } from 'lucide-react';
 import { AvatarDisplay } from './avatar-display';
-import { useUser } from '../context/user-context';
+import { useUser } from '../../context/user-context';
 
 export function Layout() {
   const location = useLocation();

@@ -7,7 +7,7 @@ import { Slider } from '../components/ui/slider';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import { AvatarDisplay } from '../components/avatar-display';
-import { useUser } from '../context/user-context';
+import { useUser } from '../../context/user-context';
 
 type ChallengeMode = 'comfort' | 'flow' | 'momentum';
 
