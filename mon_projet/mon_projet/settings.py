@@ -53,14 +53,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-# CORS Configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
-    # Add your production domain here
-    # "https://yourdomain.com",
+    "http://localhost:5173",  # Vite dev server
+    "http://localhost:3000",  # Alternative
 ]
 ROOT_URLCONF = 'mon_projet.urls'
 CORS_ALLOW_CREDENTIALS = True

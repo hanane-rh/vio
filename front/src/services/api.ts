@@ -1,4 +1,4 @@
-// src/services/api.ts - VERSION AMÉLIORÉE
+// src/services/api.ts - VERSION CORRIGÉE
 
 import axios, { AxiosInstance } from 'axios';
 
@@ -21,7 +21,7 @@ class APIService {
     const savedToken = localStorage.getItem('vio-auth-token');
     if (savedToken) {
       this.token = savedToken;
-      console.log('🔐 Token loaded from localStorage');
+      console.log('🔓 Token loaded from localStorage');
     }
 
     // Interceptor pour ajouter le token
@@ -59,7 +59,7 @@ class APIService {
   setToken(token: string | null) {
     this.token = token;
     if (token) {
-      console.log('🔑 Token set in API service');
+      console.log('🔒 Token set in API service');
     } else {
       console.log('🔓 Token cleared from API service');
     }
@@ -74,10 +74,12 @@ class APIService {
 
   // ============ AUTH ENDPOINTS ============
 
+  // ✅ CORRIGÉ: Ajout du paramètre password_confirm
   async register(
     username: string,
     email: string,
     password: string,
+    password_confirm: string,  // ✅ Nouveau paramètre
     firstName?: string,
     lastName?: string
   ) {
@@ -85,7 +87,7 @@ class APIService {
       username,
       email,
       password,
-      password_confirm: password,
+      password_confirm,  // ✅ Maintenant distinct
       first_name: firstName,
       last_name: lastName,
     });

@@ -13,7 +13,8 @@ import { AdaptiveChallenges } from './pages/adaptive-challenges';
 // Pages d'authentification
 import { LoginPage } from './pages/login';
 import { SignUpPage } from './pages/signup';
-import { OnboardingPage } from './pages/onboarding';
+import { Onboarding } from './pages/onboarding';  // ✅ CORRIGÉ: "Onboarding" au lieu de "OnboardingPage"
+import { UserProfile } from './types/avatar';
 
 export const router = createBrowserRouter([
   // ============ PAGES PUBLIQUES ============
@@ -29,7 +30,9 @@ export const router = createBrowserRouter([
     path: '/onboarding',
     element: (
       <ProtectedRoute>
-        <OnboardingPage />
+        <Onboarding onComplete={function (profile: UserProfile): void {
+          throw new Error('Function not implemented.');
+        } } />  {/* ✅ CORRIGÉ: Utiliser "Onboarding" */}
       </ProtectedRoute>
     ),
   },

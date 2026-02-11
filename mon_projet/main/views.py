@@ -448,3 +448,41 @@ class FutureSelfMessageViewSet(viewsets.ModelViewSet):
         messages = self.get_queryset().filter(is_unlocked=True)
         serializer = self.get_serializer(messages, many=True)
         return Response(serializer.data)
+    
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login(request):
+    """Login user"""
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    if not username or not password:
+        return Response({
+            'error': 'Please provide username and password'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = User.objects.get(username=username)
+        if user.check_password(password):
+            token, created = Token.objects.get_or_create(user=user)
+            
+            # ✅ CORRIGÉ: Utiliser get_or_create au lieu de get
+            # Cela évite l'erreur si le profil n'existe pas
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            
+            return Response({
+                'user_id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'token': token.key,
+                'has_completed_onboarding': profile.has_completed_onboarding,
+                'message': 'Login successful'
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'error': 'Invalid credentials'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    except User.DoesNotExist:
+        return Response({
+            'error': 'User not found'
+        }, status=status.HTTP_404_NOT_FOUND)
