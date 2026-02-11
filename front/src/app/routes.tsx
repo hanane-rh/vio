@@ -1,4 +1,4 @@
-// src/app/routes.tsx - VERSION CORRIGÉE
+// src/app/routes.tsx - VERSION AVEC ONBOARDING PAGES SÉPARÉES
 
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from './components/layout';
@@ -13,8 +13,9 @@ import { AdaptiveChallenges } from './pages/adaptive-challenges';
 // Pages d'authentification
 import { LoginPage } from './pages/login';
 import { SignUpPage } from './pages/signup';
-import { Onboarding } from './pages/onboarding';  // ✅ CORRIGÉ: "Onboarding" au lieu de "OnboardingPage"
-import { UserProfile } from './types/avatar';
+
+// Onboarding (avec sous-routes)
+import { Onboarding } from './pages/onboarding';
 
 export const router = createBrowserRouter([
   // ============ PAGES PUBLIQUES ============
@@ -26,13 +27,13 @@ export const router = createBrowserRouter([
     path: '/signup',
     element: <SignUpPage />,
   },
+  
+  // ============ ONBOARDING (PROTÉGÉ AVEC SOUS-ROUTES) ============
   {
-    path: '/onboarding',
+    path: '/onboarding/*',
     element: (
       <ProtectedRoute>
-        <Onboarding onComplete={function (profile: UserProfile): void {
-          throw new Error('Function not implemented.');
-        } } />  {/* ✅ CORRIGÉ: Utiliser "Onboarding" */}
+        <Onboarding />
       </ProtectedRoute>
     ),
   },
