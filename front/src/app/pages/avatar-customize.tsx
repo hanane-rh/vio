@@ -1,176 +1,210 @@
 // src/app/pages/avatar-customize.tsx
-// Step 2: Personnaliser l'avatar
+// Updated design - Simpler avatar selection with images
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { Label } from '../components/ui/label';
 
-const AVATAR_OPTIONS = {
-  appearance: [
-    { value: 'gentle', label: 'Gentle', description: 'Soft and calming presence' },
-    { value: 'energetic', label: 'Energetic', description: 'Vibrant and motivating' },
-    { value: 'mature', label: 'Mature', description: 'Wise and experienced' },
-    { value: 'youthful', label: 'Youthful', description: 'Fresh and optimistic' },
-  ],
-  expression: [
-    { value: 'warm', label: 'Warm', description: 'Friendly and welcoming' },
-    { value: 'confident', label: 'Confident', description: 'Strong and assured' },
-    { value: 'playful', label: 'Playful', description: 'Light and cheerful' },
-    { value: 'serene', label: 'Serene', description: 'Peaceful and calm' },
-  ],
-  tone: [
-    { value: 'encouraging', label: 'Encouraging', description: 'Supportive and uplifting' },
-    { value: 'direct', label: 'Direct', description: 'Clear and straightforward' },
-    { value: 'inspiring', label: 'Inspiring', description: 'Motivational and empowering' },
-    { value: 'celebratory', label: 'Celebratory', description: 'Joyful and positive' },
-  ],
-};
+// Avatar logo component (the teal swirl at top)
+const VioLogo = () => (
+  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M24 4C20 4 16 6 14 10C12 14 12 20 16 24C20 28 28 28 32 24C36 20 36 14 34 10C32 6 28 4 24 4Z" 
+          fill="url(#gradient)" stroke="#14b8a6" strokeWidth="2"/>
+    <path d="M20 24C18 28 18 34 22 38C26 42 32 42 36 38" 
+          stroke="#14b8a6" strokeWidth="2.5" strokeLinecap="round"/>
+    <defs>
+      <linearGradient id="gradient" x1="14" y1="4" x2="34" y2="28">
+        <stop offset="0%" stopColor="#14b8a6"/>
+        <stop offset="100%" stopColor="#10b981"/>
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const AVATAR_OPTIONS = [
+  { 
+    id: 'avatar1', 
+    name: 'Gentle Guide',
+    image: '/assert/avatar1.png', // Update with your actual image path
+    alt: 'Gentle avatar with purple outfit'
+  },
+  { 
+    id: 'avatar2', 
+    name: 'Energetic Companion',
+    image: '/assert/avatar2.png', // Update with your actual image path
+    alt: 'Energetic avatar with red outfit'
+  },
+];
+
+const TONE_OPTIONS = [
+  { value: 'encouraging', label: 'Encouraging' },
+  { value: 'gentle', label: 'Gentle' },
+  { value: 'inspiring', label: 'Inspiring' },
+  { value: 'celebratory', label: 'Celebratory' },
+];
 
 export function AvatarCustomizePage() {
   const navigate = useNavigate();
   const [avatarName, setAvatarName] = useState('');
-  const [avatar, setAvatar] = useState({
-    appearance: 'gentle',
-    expression: 'warm',
-    tone: 'encouraging',
-  });
+  const [selectedAvatar, setSelectedAvatar] = useState('avatar1');
+  const [selectedTone, setSelectedTone] = useState('encouraging');
 
   useEffect(() => {
-    // Charger le nom de l'avatar
+    // Load avatar name from previous step
     const savedName = localStorage.getItem('vio-onboarding-avatar-name');
     if (savedName) setAvatarName(savedName);
 
-    // Charger les préférences si elles existent
-    const savedAvatar = localStorage.getItem('vio-onboarding-avatar-config');
-    if (savedAvatar) {
-      setAvatar(JSON.parse(savedAvatar));
+    // Load saved preferences if they exist
+    const savedConfig = localStorage.getItem('vio-onboarding-avatar-config');
+    if (savedConfig) {
+      const config = JSON.parse(savedConfig);
+      if (config.avatar) setSelectedAvatar(config.avatar);
+      if (config.tone) setSelectedTone(config.tone);
     }
   }, []);
 
   const handleContinue = () => {
-    // Sauvegarder dans localStorage
-    localStorage.setItem('vio-onboarding-avatar-config', JSON.stringify(avatar));
-    console.log('✅ Avatar config saved:', avatar);
+    // Save configuration to localStorage
+    const avatarConfig = {
+      avatar: selectedAvatar,
+      tone: selectedTone,
+      // Map to backend expected format
+      appearance: selectedAvatar === 'avatar1' ? 'gentle' : 'energetic',
+      expression: 'warm',
+    };
     
-    // Naviguer vers la prochaine étape
+    localStorage.setItem('vio-onboarding-avatar-config', JSON.stringify(avatarConfig));
+    console.log('✅ Avatar config saved:', avatarConfig);
+    
+    // Navigate to next step
     navigate('/treatment-info');
   };
 
-  const getAvatarGradient = () => {
-    const gradients = {
-      youthful: 'from-violet-400 to-purple-400',
-      mature: 'from-blue-400 to-cyan-400',
-      gentle: 'from-teal-400 to-emerald-400',
-      energetic: 'from-amber-400 to-orange-400',
-    };
-    return gradients[avatar.appearance as keyof typeof gradients];
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-teal-50">
       <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
         className="w-full max-w-2xl"
       >
-        <Card className="p-8 md:p-12 bg-white/80 backdrop-blur-sm border-teal-100 shadow-xl">
+        <Card className="p-8 md:p-12 bg-white border-2 border-teal-400 shadow-2xl rounded-2xl">
           <div className="space-y-8">
-            <div className="text-center space-y-4">
-              <div className={`inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br ${getAvatarGradient()} shadow-lg mb-4`}>
-                <Sparkles className="w-10 h-10 text-white" />
-              </div>
-              
-              <h2 className="text-3xl font-bold text-slate-800">
+            {/* Logo */}
+            <div className="flex justify-center">
+              <VioLogo />
+            </div>
+
+            {/* Title */}
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl md:text-3xl font-bold text-slate-800">
                 Customize Your Companion
               </h2>
-              <p className="text-lg text-slate-600">
-                Choose how {avatarName || 'your future self'} appears and speaks to you
+              <p className="text-slate-600">
+                Choose how your future self appears and speaks to you
               </p>
             </div>
 
-            <div className="space-y-6">
-              {/* Appearance */}
-              <div>
-                <Label className="text-slate-700 mb-3 block">Presence Style</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {AVATAR_OPTIONS.appearance.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setAvatar({ ...avatar, appearance: option.value })}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${
-                        avatar.appearance === option.value
-                          ? 'border-teal-400 bg-gradient-to-br from-teal-50 to-emerald-50 shadow-md'
-                          : 'border-slate-200 bg-white hover:border-teal-200'
+            {/* Avatar Selection */}
+            <div className="space-y-4">
+              <div className="flex justify-center gap-6">
+                {AVATAR_OPTIONS.map((avatar) => (
+                  <button
+                    key={avatar.id}
+                    onClick={() => setSelectedAvatar(avatar.id)}
+                    className="relative group"
+                  >
+                    <div
+                      className={`relative w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-white border-2 transition-all duration-200 overflow-hidden ${
+                        selectedAvatar === avatar.id
+                          ? 'border-teal-400 shadow-lg scale-105'
+                          : 'border-slate-200 hover:border-teal-200'
                       }`}
                     >
-                      <div className="font-semibold text-slate-800 mb-1">{option.label}</div>
-                      <div className="text-sm text-slate-600">{option.description}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Expression */}
-              <div>
-                <Label className="text-slate-700 mb-3 block">Expression Style</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {AVATAR_OPTIONS.expression.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setAvatar({ ...avatar, expression: option.value })}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${
-                        avatar.expression === option.value
-                          ? 'border-teal-400 bg-gradient-to-br from-teal-50 to-emerald-50 shadow-md'
-                          : 'border-slate-200 bg-white hover:border-teal-200'
-                      }`}
-                    >
-                      <div className="font-semibold text-slate-800 mb-1">{option.label}</div>
-                      <div className="text-sm text-slate-600">{option.description}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tone */}
-              <div>
-                <Label className="text-slate-700 mb-3 block">Communication Tone</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {AVATAR_OPTIONS.tone.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setAvatar({ ...avatar, tone: option.value })}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${
-                        avatar.tone === option.value
-                          ? 'border-teal-400 bg-gradient-to-br from-teal-50 to-emerald-50 shadow-md'
-                          : 'border-slate-200 bg-white hover:border-teal-200'
-                      }`}
-                    >
-                      <div className="font-semibold text-slate-800 mb-1">{option.label}</div>
-                      <div className="text-sm text-slate-600">{option.description}</div>
-                    </button>
-                  ))}
-                </div>
+                      {/* Placeholder for avatar image */}
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-50 to-emerald-50">
+                        <img
+                          src={avatar.image}
+                          alt={avatar.alt}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback if image doesn't load
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.parentElement!.innerHTML = `
+                              <div class="w-full h-full flex items-center justify-center text-4xl">
+                                ${avatar.id === 'avatar1' ? '👤' : '🙂'}
+                              </div>
+                            `;
+                          }}
+                        />
+                      </div>
+                      
+                      {/* Selection indicator */}
+                      {selectedAvatar === avatar.id && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-teal-400 rounded-full flex items-center justify-center shadow-md"
+                        >
+                          <svg
+                            className="w-4 h-4 text-white"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path d="M5 13l4 4L19 7"></path>
+                          </svg>
+                        </motion.div>
+                      )}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            {/* Communication Tone */}
+            <div className="space-y-3">
+              <label className="block text-center text-sm font-medium text-slate-700">
+                Communication Tone :
+              </label>
+              <div className="flex flex-wrap justify-center gap-3">
+                {TONE_OPTIONS.map((tone) => (
+                  <button
+                    key={tone.value}
+                    onClick={() => setSelectedTone(tone.value)}
+                    className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                      selectedTone === tone.value
+                        ? 'bg-teal-400 text-white shadow-md'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:border-teal-200'
+                    }`}
+                  >
+                    {tone.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4 pt-4">
               <Button
                 onClick={() => navigate('/avatar-name')}
                 variant="outline"
-                className="flex-1"
+                className="flex-1 py-6 text-base border-2 border-slate-200 hover:border-slate-300 rounded-xl"
               >
                 Back
               </Button>
               <Button
                 onClick={handleContinue}
-                className="flex-1 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-500 hover:to-emerald-500"
+                className="flex-1 py-6 text-base bg-teal-400 hover:bg-teal-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 Continue
-                <ChevronRight className="ml-2 w-4 h-4" />
+                <ChevronRight className="ml-2 w-5 h-5" />
               </Button>
             </div>
           </div>
@@ -179,7 +213,7 @@ export function AvatarCustomizePage() {
           <div className="flex justify-center gap-2 mt-8">
             <div className="w-2 h-2 rounded-full bg-slate-300" />
             <div className="w-2 h-2 rounded-full bg-slate-300" />
-            <div className="w-8 h-2 rounded-full bg-gradient-to-r from-teal-400 to-emerald-400" />
+            <div className="w-8 h-2 rounded-full bg-teal-400" />
             <div className="w-2 h-2 rounded-full bg-slate-300" />
           </div>
         </Card>
