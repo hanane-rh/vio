@@ -1,4 +1,4 @@
-// src/app/pages/login.tsx - VERSION CORRIGÉE
+// src/app/pages/login.tsx - VERSION FINALE RECOMMANDÉE
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -39,7 +39,7 @@ export function LoginPage() {
         return;
       }
 
-      // 🔑 CRUCIAL: Sauvegarder le token dans localStorage ET dans apiService
+      // 🔒 CRUCIAL: Sauvegarder le token dans localStorage ET dans apiService
       localStorage.setItem('vio-auth-token', token);
       apiService.setToken(token);
       
@@ -53,7 +53,10 @@ export function LoginPage() {
         localStorage.setItem('vio-user-profile', JSON.stringify(profile));
         console.log('➡️ Redirecting to onboarding');
         toast.success('✨ Welcome! Let\'s set up your profile.');
-        navigate('/onboarding', { replace: true });
+        
+        // ✅ RECOMMANDÉ: Rediriger vers /onboarding
+        // Le composant Onboarding/index.tsx se chargera de rediriger vers /welcome
+        navigate('/welcome', { replace: true });
       } else {
         // Récupérer le profil complet depuis l'API
         try {

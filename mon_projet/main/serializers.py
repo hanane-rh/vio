@@ -1,4 +1,4 @@
-# vio/serializers.py
+# vio/serializers.py - VERSION SIMPLIFIÉE
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
@@ -106,24 +106,31 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 class OnboardingDataSerializer(serializers.Serializer):
-    """Serializer pour compléter l'onboarding (tous les steps)"""
-    # Avatar
-    avatar_name = serializers.CharField(max_length=255)
-    avatar_appearance = serializers.ChoiceField(choices=['youthful', 'mature', 'gentle', 'energetic'])
-    avatar_expression = serializers.ChoiceField(choices=['warm', 'hopeful', 'peaceful', 'joyful'])
-    avatar_tone = serializers.ChoiceField(choices=['encouraging', 'gentle', 'inspiring', 'celebratory'])
+    """
+    Serializer for complete onboarding data
+    ✅ VERSION SIMPLIFIÉE : start_date n'est pas inclus - géré automatiquement par le model
+    """
     
-    # Treatment Info
-    diagnosis = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    treatment_type = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    doctor_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    hospital = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    start_date = serializers.DateField()
-    duration_weeks = serializers.IntegerField(min_value=1)
-    notes = serializers.CharField(required=False, allow_blank=True)
+    # Avatar fields
+    avatar_name = serializers.CharField(max_length=100)
+    avatar_appearance = serializers.CharField(max_length=50)
+    avatar_expression = serializers.CharField(max_length=50)
+    avatar_tone = serializers.CharField(max_length=50)
+    
+    # Treatment Info fields
+    diagnosis = serializers.CharField(max_length=200, allow_blank=True, required=False)
+    treatment_type = serializers.CharField(max_length=100, allow_blank=True, required=False)
+    doctor_name = serializers.CharField(max_length=100, allow_blank=True, required=False)
+    hospital = serializers.CharField(max_length=200, allow_blank=True, required=False)
+    
+    # ✅ start_date supprimé - sera automatiquement aujourd'hui via model default
+    
+    duration_weeks = serializers.IntegerField()
+    notes = serializers.CharField(allow_blank=True, required=False)
     
     # Task Templates
     task_templates = serializers.ListField(
         child=serializers.DictField(),
-        required=False
+        required=False,
+        allow_empty=True
     )

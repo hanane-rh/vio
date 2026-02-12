@@ -26,7 +26,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       // Si onboarding pas complété → rediriger vers onboarding
       if (!profile.hasCompletedOnboarding) {
         console.log('📋 Onboarding not completed - redirecting');
-        return <Navigate to="/onboarding" replace />;
+        return <Navigate to="/welcome" replace />;
       }
     } catch (e) {
       console.error('❌ Error parsing profile:', e);

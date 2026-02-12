@@ -1,4 +1,4 @@
-# vio/views.py
+# vio/views.py - VERSION SIMPLIFIÉE
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -55,7 +55,7 @@ def login(request):
         user = User.objects.get(username=username)
         if user.check_password(password):
             token, created = Token.objects.get_or_create(user=user)
-            profile = UserProfile.objects.get(user=user)
+            profile, _ = UserProfile.objects.get_or_create(user=user)
             
             return Response({
                 'user_id': user.id,
@@ -90,7 +90,6 @@ def logout(request):
 def generate_daily_tasks(user, target_date=None):
     """
     Génère les tâches quotidiennes basées sur les templates
-    Logique intelligente: Médication 1x/semaine lundi + 2x/jour = jour 1: 3 tâches, jour 2-6: 2, jour 7: 3
     """
     if target_date is None:
         target_date = date.today()
@@ -157,12 +156,21 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(profile)
             return Response(serializer.data)
     
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['POST'], url_path='complete_onboarding')
     def complete_onboarding(self, request):
         """
         Complete the entire onboarding process
-        Crée avatar + treatment info + task templates + génère les tâches du jour
+        ✅ VERSION SIMPLIFIÉE : start_date est automatiquement aujourd'hui
         """
+        print("=" * 60)
+        print("🚀 ONBOARDING REQUEST RECEIVED")
+        print(f"   User: {request.user.username}")
+        print(f"   Data keys: {list(request.data.keys())}")
+        print(f"   duration_weeks in data: {'duration_weeks' in request.data}")
+        if 'duration_weeks' in request.data:
+            print(f"   duration_weeks value: {request.data['duration_weeks']} (type: {type(request.data['duration_weeks'])})")
+        print("=" * 60)
+        
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         
         try:
@@ -182,15 +190,23 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             avatar.save()
             
             # 2. Créer/Mettre à jour Treatment Info
-            treatment_info, _ = TreatmentInfo.objects.get_or_create(user=request.user)
-            treatment_info.diagnosis = data.get('diagnosis', '')
-            treatment_info.treatment_type = data.get('treatment_type', '')
-            treatment_info.doctor_name = data.get('doctor_name', '')
-            treatment_info.hospital = data.get('hospital', '')
-            treatment_info.start_date = data['start_date']
-            treatment_info.duration_weeks = data['duration_weeks']
-            treatment_info.notes = data.get('notes', '')
-            treatment_info.save()
+            # ✅ Use update_or_create to ensure ALL fields are properly set
+            treatment_info, created = TreatmentInfo.objects.update_or_create(
+                user=request.user,
+                defaults={
+                    'diagnosis': data.get('diagnosis', ''),
+                    'treatment_type': data.get('treatment_type', ''),
+                    'doctor_name': data.get('doctor_name', ''),
+                    'hospital': data.get('hospital', ''),
+                    'start_date': date.today(),
+                    'duration_weeks': data['duration_weeks'],
+                    'notes': data.get('notes', ''),
+                }
+            )
+            
+            print(f"✅ Treatment info {'created' if created else 'updated'}")
+            print(f"   - start_date: {treatment_info.start_date}")
+            print(f"   - duration_weeks: {treatment_info.duration_weeks}")
             
             # 3. Créer les Task Templates
             task_templates_data = data.get('task_templates', [])
@@ -228,15 +244,21 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             
             result_serializer = UserProfileSerializer(profile)
             return Response({
-                'status': 'onboarding_completed',
-                'profile': result_serializer.data,
-                'message': 'Onboarding completed! Tasks generated.'
+                'status': 'success',
+                'message': 'Onboarding completed successfully',
+                'profile': result_serializer.data
             }, status=status.HTTP_200_OK)
-        
+            
         except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            print("❌ Onboarding error:", str(e))
+            print(error_trace)
+            
             return Response({
-                'error': str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
+                'error': str(e),
+                'trace': error_trace if request.user.is_staff else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ============= AVATAR ENDPOINTS =============
@@ -448,41 +470,3 @@ class FutureSelfMessageViewSet(viewsets.ModelViewSet):
         messages = self.get_queryset().filter(is_unlocked=True)
         serializer = self.get_serializer(messages, many=True)
         return Response(serializer.data)
-    
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def login(request):
-    """Login user"""
-    username = request.data.get('username')
-    password = request.data.get('password')
-    
-    if not username or not password:
-        return Response({
-            'error': 'Please provide username and password'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    try:
-        user = User.objects.get(username=username)
-        if user.check_password(password):
-            token, created = Token.objects.get_or_create(user=user)
-            
-            # ✅ CORRIGÉ: Utiliser get_or_create au lieu de get
-            # Cela évite l'erreur si le profil n'existe pas
-            profile, _ = UserProfile.objects.get_or_create(user=user)
-            
-            return Response({
-                'user_id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'token': token.key,
-                'has_completed_onboarding': profile.has_completed_onboarding,
-                'message': 'Login successful'
-            }, status=status.HTTP_200_OK)
-        else:
-            return Response({
-                'error': 'Invalid credentials'
-            }, status=status.HTTP_401_UNAUTHORIZED)
-    except User.DoesNotExist:
-        return Response({
-            'error': 'User not found'
-        }, status=status.HTTP_404_NOT_FOUND)
