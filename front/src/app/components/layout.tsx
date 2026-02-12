@@ -1,7 +1,8 @@
 import { Outlet, Link, useLocation } from 'react-router';
-import { Heart, Sparkles, Star, Zap, Home } from 'lucide-react';
+import { Heart, Sparkles, Star, Zap, Home, Clock, Wind, Bell } from 'lucide-react';
 import { AvatarDisplay } from './avatar-display';
 import { useUser } from '../../context/user-context';
+import logoVio from '../assets/logovio.png';
 
 export function Layout() {
   const location = useLocation();
@@ -9,9 +10,10 @@ export function Layout() {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Home },
+    { path: '/routines', label: 'Routines', icon: Clock },
     { path: '/future-self', label: 'Future Self', icon: Sparkles },
     { path: '/constellation', label: 'Constellation', icon: Star },
-    { path: '/challenges', label: 'Challenges', icon: Zap },
+    { path: '/breathing', label: 'Breathing', icon: Wind },
   ];
 
   return (
@@ -21,11 +23,20 @@ export function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center">
-                <Heart className="w-5 h-5 text-white" fill="currentColor" />
+             <div className="flex items-center gap-2">
+                {/* Option 1: Using Image Logo (if you have a logo file) */}
+                <img 
+  src={logoVio}              // ← Use the variable, not a string!
+  alt="VIO Logo" 
+  className="w-16 h-18 object-contain"
+/>
+                
+              
+                
+                <span className="text-2xl font-bold text-slate-800">VIO</span>
               </div>
-              <h1 className="text-2xl font-semibold text-slate-800">CarePath</h1>
             </div>
+
             
             <nav className="flex items-center gap-2">
               {navItems.map((item) => {
@@ -46,17 +57,27 @@ export function Layout() {
                   </Link>
                 );
               })}
-
-              {/* Avatar in header */}
-              {profile && (
-                <div className="ml-2 pl-2 border-l border-teal-200">
-                  <AvatarDisplay config={profile.avatar} size="small" />
-                </div>
-              )}
-            </nav>
+              </nav>
+               {/* Notification Bell - Right Side */}
+            <button 
+              className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center hover:scale-105 transition-transform shadow-md"
+              onClick={() => {
+                // Handle notification click
+                console.log('Notifications clicked');
+              }}
+            >
+              <Bell className="w-5 h-5 text-white" />
+              
+              {/* Optional: Notification Badge (uncomment if you want to show unread count) */}
+              {/* <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold">
+                3
+              </span> */}
+            </button>
           </div>
         </div>
       </header>
+
+
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
@@ -72,7 +93,7 @@ export function Layout() {
               Every step forward is a victory. We're proud of you.
             </p>
             <p className="text-xs text-slate-500">
-              CarePath — Your compassionate companion on the journey to healing
+              VIO — Your compassionate companion on the journey to healing
             </p>
           </div>
         </div>

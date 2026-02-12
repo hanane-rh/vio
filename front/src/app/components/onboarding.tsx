@@ -22,7 +22,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
   const steps = [
     {
-      title: 'Welcome to CarePath',
+      title: 'Welcome to VIO',
       description: 'Your compassionate companion on your healing journey',
     },
     {
@@ -89,7 +89,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
                 <div className="bg-gradient-to-r from-teal-50 to-emerald-50 rounded-2xl p-6 border border-teal-100">
                   <p className="text-slate-700 leading-relaxed">
-                    CarePath transforms your treatment journey into a meaningful, emotionally supportive experience. 
+                    VIO transforms your treatment journey into a meaningful, emotionally supportive experience. 
                     You'll create a personal connection with your future healthy self, map your resilience through 
                     a beautiful constellation of achievements, and receive adaptive support that meets you exactly where you are.
                   </p>

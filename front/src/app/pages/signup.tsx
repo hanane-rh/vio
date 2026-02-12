@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { toast } from 'sonner';
+import logoVio from '../assets/logovio.png';
 
 export function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -231,6 +232,13 @@ export function SignUpPage() {
             transition={{ delay: 0.2 }}
             className="text-center mb-8"
           >
+            <div className="inline-flex items-center justify-center w-25 h-25 mb-4">
+                        <img 
+                         src={logoVio} 
+                          alt="VIO Logo" 
+                         className="w-full h-full object-contain"
+                         />
+                        </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
               Create Your Account
             </h1>

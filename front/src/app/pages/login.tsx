@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { toast } from 'sonner';
+import logoVio from '../assets/logovio.png';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
@@ -107,8 +108,12 @@ export function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-8"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-400 shadow-lg mb-4">
-              <span className="text-2xl font-bold text-white">VIO</span>
+            <div className="inline-flex items-center justify-center w-25 h-25 mb-4">
+            <img 
+             src={logoVio} 
+              alt="VIO Logo" 
+             className="w-full h-full object-contain"
+             />
             </div>
             <h1 className="text-3xl font-bold text-slate-800">Welcome to VIO</h1>
             <p className="text-slate-600 mt-2">Your treatment companion</p>

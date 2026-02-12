@@ -152,22 +152,6 @@ export function FutureSelfDialogue() {
           </p>
         </motion.div>
 
-        {/* Avatar Display */}
-        {profile && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card className="p-6 bg-white/60 backdrop-blur-sm border-violet-100">
-              <AvatarDisplay
-                config={profile.avatar}
-                size="large"
-                showName
-              />
-            </Card>
-          </motion.div>
-        )}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">

@@ -9,6 +9,8 @@ import { Dashboard } from './pages/dashboard';
 import { FutureSelfDialogue } from './pages/future-self-dialogue';
 import { Constellation } from './pages/constellation';
 import { AdaptiveChallenges } from './pages/adaptive-challenges';
+import { BreathingMeditation } from './pages/breathing-meditation';
+import { RoutineBuilder } from './pages/routine-builder';
 
 // Pages d'authentification
 import { LoginPage } from './pages/login';
@@ -51,6 +53,8 @@ export const router = createBrowserRouter([
       { path: 'future-self', element: <FutureSelfDialogue /> },
       { path: 'constellation', element: <Constellation /> },
       { path: 'challenges', element: <AdaptiveChallenges /> },
+      { path: 'breathing', element: <BreathingMeditation />},
+      { path: 'routines', element: <RoutineBuilder />},
     ],
   },
 
