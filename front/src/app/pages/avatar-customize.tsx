@@ -1,13 +1,13 @@
-// src/app/pages/onboarding/avatar-customize.tsx
+// src/app/pages/avatar-customize.tsx
 // Step 2: Personnaliser l'avatar
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, ChevronRight } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
-import { Label } from '../../components/ui/label';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Label } from '../components/ui/label';
 
 const AVATAR_OPTIONS = {
   appearance: [
@@ -57,7 +57,7 @@ export function AvatarCustomizePage() {
     console.log('✅ Avatar config saved:', avatar);
     
     // Naviguer vers la prochaine étape
-    navigate('/onboarding/treatment-info');
+    navigate('/treatment-info');
   };
 
   const getAvatarGradient = () => {
@@ -159,7 +159,7 @@ export function AvatarCustomizePage() {
 
             <div className="flex gap-3">
               <Button
-                onClick={() => navigate('/onboarding/avatar-name')}
+                onClick={() => navigate('/avatar-name')}
                 variant="outline"
                 className="flex-1"
               >

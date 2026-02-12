@@ -1,4 +1,4 @@
-// src/app/routes.tsx - VERSION AVEC ONBOARDING PAGES SÉPARÉES
+// src/app/routes.tsx - VERSION CORRIGÉE
 
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from './components/layout';
@@ -16,8 +16,23 @@ import { RoutineBuilder } from './pages/routine-builder';
 import { LoginPage } from './pages/login';
 import { SignUpPage } from './pages/signup';
 
-// Onboarding (avec sous-routes)
-import { Onboarding } from './pages/onboarding';
+// Pages d'onboarding
+import { WelcomePage } from './pages/welcome';
+import { AvatarNamePage } from './pages/avatar-name';
+import { AvatarCustomizePage } from './pages/avatar-customize';
+import { TreatmentInfoPage } from './pages/treatment-info';
+
+// Composant simple pour vérifier uniquement le token (pas l'onboarding)
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('vio-auth-token');
+  
+  if (!token) {
+    console.log('🔒 No token - redirecting to login');
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+}
 
 export const router = createBrowserRouter([
   // ============ PAGES PUBLIQUES ============
@@ -30,17 +45,49 @@ export const router = createBrowserRouter([
     element: <SignUpPage />,
   },
   
-  // ============ ONBOARDING (PROTÉGÉ AVEC SOUS-ROUTES) ============
+  // ============ ONBOARDING PAGES (SEULEMENT TOKEN REQUIS) ============
   {
-    path: '/onboarding/*',
+    path: '/welcome',
     element: (
-      <ProtectedRoute>
-        <Onboarding />
-      </ProtectedRoute>
+      <RequireAuth>
+        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-teal-50 to-emerald-50">
+          <WelcomePage />
+        </div>
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/avatar-name',
+    element: (
+      <RequireAuth>
+        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-teal-50 to-emerald-50">
+          <AvatarNamePage />
+        </div>
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/avatar-customize',
+    element: (
+      <RequireAuth>
+        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-teal-50 to-emerald-50">
+          <AvatarCustomizePage />
+        </div>
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/treatment-info',
+    element: (
+      <RequireAuth>
+        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-teal-50 to-emerald-50">
+          <TreatmentInfoPage />
+        </div>
+      </RequireAuth>
     ),
   },
 
-  // ============ PAGES PROTÉGÉES ============
+  // ============ PAGES PROTÉGÉES (DASHBOARD - ONBOARDING REQUIS) ============
   {
     path: '/',
     element: (

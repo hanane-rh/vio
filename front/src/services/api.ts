@@ -1,4 +1,4 @@
-// src/services/api.ts - VERSION CORRIGÉE
+// src/services/api.ts - VERSION FINALE CORRIGÉE
 
 import axios, { AxiosInstance } from 'axios';
 
@@ -17,7 +17,7 @@ class APIService {
       },
     });
 
-    // 🔑 IMPORTANT: Charger le token depuis localStorage au démarrage
+    // 🔓 IMPORTANT: Charger le token depuis localStorage au démarrage
     const savedToken = localStorage.getItem('vio-auth-token');
     if (savedToken) {
       this.token = savedToken;
@@ -74,12 +74,11 @@ class APIService {
 
   // ============ AUTH ENDPOINTS ============
 
-  // ✅ CORRIGÉ: Ajout du paramètre password_confirm
   async register(
     username: string,
     email: string,
     password: string,
-    password_confirm: string,  // ✅ Nouveau paramètre
+    password_confirm: string,
     firstName?: string,
     lastName?: string
   ) {
@@ -87,7 +86,7 @@ class APIService {
       username,
       email,
       password,
-      password_confirm,  // ✅ Maintenant distinct
+      password_confirm,
       first_name: firstName,
       last_name: lastName,
     });
@@ -116,8 +115,10 @@ class APIService {
     return this.axiosInstance.get('/profiles/current/');
   }
 
+  // ✅ CORRIGÉ: Utiliser POST (pas PATCH) car Django n'accepte que POST
   async completeOnboarding(data: any) {
-    return this.axiosInstance.post('/profiles/current/complete_onboarding/', data);
+    console.log('🔄 Sending onboarding completion...');
+    return this.axiosInstance.post('/profiles/complete_onboarding/', data);
   }
 
   // ============ AVATAR ENDPOINTS ============
@@ -142,6 +143,10 @@ class APIService {
 
   async updateTreatmentInfo(data: any) {
     return this.axiosInstance.post('/treatment/current/', data);
+  }
+
+  async createTreatmentInfo(data: any) {
+    return this.axiosInstance.post('/treatment/', data);
   }
 
   // ============ TASK TEMPLATE ENDPOINTS ============

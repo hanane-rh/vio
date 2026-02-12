@@ -1,4 +1,5 @@
-// src/app/pages/signup.tsx - VERSION CORRIGÉE
+// src/app/pages/signup-DEBUG.tsx
+// VERSION DE DIAGNOSTIC AVEC LOGS DÉTAILLÉS
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -87,7 +88,8 @@ export function SignUpPage() {
 
     try {
       setIsLoading(true);
-      console.log('🔐 Starting registration process...', { 
+      console.log('🔐 [SIGNUP] Starting registration process...');
+      console.log('📝 [SIGNUP] Form data:', { 
         username: formData.username, 
         email: formData.email,
         first_name: formData.first_name,
@@ -104,7 +106,7 @@ export function SignUpPage() {
         last_name: formData.last_name.trim() || '',
       };
 
-      console.log('📤 Sending registration data:', registrationData);
+      console.log('📤 [SIGNUP] Sending registration data to API...');
       
       // Appel API
       const result = await apiService.register(
@@ -116,57 +118,102 @@ export function SignUpPage() {
         registrationData.last_name
       );
       
-      console.log('✅ Registration successful:', result.data);
+      console.log('✅ [SIGNUP] Registration API call successful!');
+      console.log('📦 [SIGNUP] Full response:', result);
+      console.log('📦 [SIGNUP] Response data:', result.data);
+      console.log('📦 [SIGNUP] Response data keys:', Object.keys(result.data));
       
-      const { token, user } = result.data;
+      // Extraire les données
+      console.log('🔍 [SIGNUP] Extracting data from response...');
+      console.log('🔍 [SIGNUP] result.data.token:', result.data.token);
+      console.log('🔍 [SIGNUP] result.data.user:', result.data.user);
+      console.log('🔍 [SIGNUP] result.data.user_id:', result.data.user_id);
+      console.log('🔍 [SIGNUP] result.data.username:', result.data.username);
+      console.log('🔍 [SIGNUP] result.data.email:', result.data.email);
       
+      const token = result.data.token;
+      const user_id = result.data.user_id;
+      const username = result.data.username;
+      const email = result.data.email;
+      
+      console.log('🎯 [SIGNUP] Extracted values:');
+      console.log('  - token:', token ? `${token.substring(0, 10)}...` : 'UNDEFINED/NULL');
+      console.log('  - user_id:', user_id);
+      console.log('  - username:', username);
+      console.log('  - email:', email);
+      
+      // Vérification du token
       if (!token) {
-        console.error('❌ No token received from server');
+        console.error('❌ [SIGNUP] NO TOKEN RECEIVED!');
+        console.error('❌ [SIGNUP] This will redirect to login');
         toast.error('Registration successful but authentication failed. Please log in.');
+        console.log('🔀 [SIGNUP] Navigating to /login');
         navigate('/login');
         return;
       }
 
-      // Sauvegarder le token
-      console.log('💾 Saving authentication token...');
-      localStorage.setItem('vio-auth-token', token);
-      apiService.setToken(token);
-      console.log('✅ Token saved successfully');
+      console.log('✅ [SIGNUP] Token found! Proceeding with authentication...');
 
-      // Créer un profil minimal pour l'onboarding
-      const profile = {
-        hasCompletedOnboarding: false,
-        user: user || {
-          id: null,
-          username: formData.username,
-          email: formData.email,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-        }
+      // Sauvegarder le token
+      console.log('💾 [SIGNUP] Saving token to localStorage...');
+      localStorage.setItem('vio-auth-token', token);
+      console.log('💾 [SIGNUP] Token saved to localStorage');
+      
+      console.log('🔧 [SIGNUP] Setting token in apiService...');
+      apiService.setToken(token);
+      console.log('✅ [SIGNUP] Token set in apiService');
+
+      // Créer l'objet user
+      const userObject = {
+        id: user_id,
+        username: username,
+        email: email,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
       };
       
-      console.log('💾 Saving initial profile for onboarding:', profile);
-      localStorage.setItem('vio-user-profile', JSON.stringify(profile));
+      console.log('👤 [SIGNUP] Created user object:', userObject);
+
+      // Créer le profil
+      const profile = {
+        hasCompletedOnboarding: false,
+        user: userObject
+      };
       
-      // Notification et redirection
+      console.log('📝 [SIGNUP] Created profile object:', profile);
+      console.log('💾 [SIGNUP] Saving profile to localStorage...');
+      localStorage.setItem('vio-user-profile', JSON.stringify(profile));
+      console.log('✅ [SIGNUP] Profile saved to localStorage');
+      
+      // Vérification finale
+      const savedToken = localStorage.getItem('vio-auth-token');
+      const savedProfile = localStorage.getItem('vio-user-profile');
+      console.log('🔍 [SIGNUP] Verification - localStorage check:');
+      console.log('  - vio-auth-token exists?', !!savedToken);
+      console.log('  - vio-user-profile exists?', !!savedProfile);
+      
+      // Notification
       toast.success('✨ Account created successfully!', {
         description: "Let's set up your treatment plan.",
         duration: 3000,
       });
       
-      console.log('➡️ Redirecting to onboarding...');
+      console.log('🎉 [SIGNUP] All done! Preparing to navigate...');
+      console.log('🔀 [SIGNUP] Will navigate to: /welcome');
       
       setTimeout(() => {
-        navigate('/onboarding', { replace: true });
+        console.log('🚀 [SIGNUP] NAVIGATING NOW to /welcome');
+        navigate('/welcome', { replace: true });
+        console.log('✅ [SIGNUP] Navigate called');
       }, 500);
 
     } catch (error: any) {
-      console.error('❌ Sign up error:', error);
-      console.error('Error details:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message
-      });
+      console.error('❌ [SIGNUP] ERROR OCCURRED!');
+      console.error('❌ [SIGNUP] Error object:', error);
+      console.error('❌ [SIGNUP] Error response:', error.response);
+      console.error('❌ [SIGNUP] Error response data:', error.response?.data);
+      console.error('❌ [SIGNUP] Error response status:', error.response?.status);
+      console.error('❌ [SIGNUP] Error message:', error.message);
       
       // Gestion d'erreurs
       let errorMsg = 'Sign up failed. Please try again.';
@@ -201,11 +248,13 @@ export function SignUpPage() {
         errorMsg = `Network error: ${error.message}`;
       }
       
+      console.log('📢 [SIGNUP] Showing error toast:', errorMsg);
       toast.error(errorMsg, {
         duration: 5000,
       });
     } finally {
       setIsLoading(false);
+      console.log('🏁 [SIGNUP] Process complete (success or failure)');
     }
   };
 
@@ -217,21 +266,20 @@ export function SignUpPage() {
     formData.password === formData.password_confirm;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-teal-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-emerald-50 flex items-center justify-center p-4">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-md"
       >
-        <Card className="p-8 shadow-xl">
-          {/* Header */}
+        <Card className="p-8 bg-white/80 backdrop-blur-sm border-teal-100 shadow-xl">
+          {/* Logo */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
             className="text-center mb-8"
           >
+
             <div className="inline-flex items-center justify-center w-25 h-25 mb-4">
                         <img 
                          src={logoVio} 
@@ -443,16 +491,6 @@ export function SignUpPage() {
               </button>
             </p>
           </div>
-
-          {/* Debug Info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs">
-              <p className="font-semibold mb-1">Debug Info:</p>
-              <p>Form Valid: {isFormValid ? '✓' : '✗'}</p>
-              <p>Passwords Match: {passwordsMatch ? '✓' : '✗'}</p>
-              <p>Password Length: {formData.password.length}</p>
-            </div>
-          )}
         </Card>
       </motion.div>
     </div>

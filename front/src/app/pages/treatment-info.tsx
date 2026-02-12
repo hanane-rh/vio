@@ -1,16 +1,17 @@
-// src/app/pages/onboarding/treatment-info.tsx
+// src/app/pages/treatment-info.tsx
 // Step 3: Informations de traitement + Completion
+// ✅ VERSION SIMPLIFIÉE : start_date supprimé (automatiquement aujourd'hui côté backend)
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Pill, Sparkles } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { apiService } from '../../../services/api';
-import { useUser } from '../../../context/user-context';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { apiService } from '../../services/api';
+import { useUser } from '../../context/user-context';
 import { toast } from 'sonner';
 
 export function TreatmentInfoPage() {
@@ -18,12 +19,12 @@ export function TreatmentInfoPage() {
   const { syncWithBackend } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   
+  // ✅ SIMPLIFIÉ : start_date supprimé de l'état
   const [treatmentData, setTreatmentData] = useState({
     diagnosis: '',
     treatment_type: '',
     doctor_name: '',
     hospital: '',
-    start_date: new Date().toISOString().split('T')[0],
     duration_weeks: '',
     notes: '',
   });
@@ -32,7 +33,8 @@ export function TreatmentInfoPage() {
     // Charger depuis localStorage si existe
     const saved = localStorage.getItem('vio-onboarding-treatment');
     if (saved) {
-      setTreatmentData(JSON.parse(saved));
+      const savedData = JSON.parse(saved);
+      setTreatmentData(savedData);
     }
   }, []);
 
@@ -61,7 +63,7 @@ export function TreatmentInfoPage() {
         tone: 'encouraging',
       };
 
-      // Préparer les données pour l'API
+      // ✅ Préparer les données pour l'API (SANS start_date)
       const onboardingData = {
         // Avatar
         avatar_name: avatarName,
@@ -69,16 +71,15 @@ export function TreatmentInfoPage() {
         avatar_expression: avatarConfig.expression,
         avatar_tone: avatarConfig.tone,
 
-        // Treatment Info
+        // Treatment Info (start_date sera automatiquement aujourd'hui)
         diagnosis: treatmentData.diagnosis,
         treatment_type: treatmentData.treatment_type || '',
         doctor_name: treatmentData.doctor_name || '',
         hospital: treatmentData.hospital || '',
-        start_date: treatmentData.start_date,
         duration_weeks: parseInt(treatmentData.duration_weeks),
         notes: treatmentData.notes || '',
 
-        // Task Templates par défaut
+        // Task Templates avec TOUS les champs requis par Django
         task_templates: [
           {
             title: 'Morning medication',
@@ -86,6 +87,16 @@ export function TreatmentInfoPage() {
             frequency: 'daily',
             timing: 'morning',
             is_important: true,
+            dosage: '',
+            quantity: '',
+            custom_frequency_days: null,
+            monday: true,
+            tuesday: true,
+            wednesday: true,
+            thursday: true,
+            friday: true,
+            saturday: true,
+            sunday: true,
           },
           {
             title: 'Evening medication',
@@ -93,6 +104,16 @@ export function TreatmentInfoPage() {
             frequency: 'daily',
             timing: 'evening',
             is_important: true,
+            dosage: '',
+            quantity: '',
+            custom_frequency_days: null,
+            monday: true,
+            tuesday: true,
+            wednesday: true,
+            thursday: true,
+            friday: true,
+            saturday: true,
+            sunday: true,
           },
           {
             title: 'Hydration check',
@@ -100,11 +121,26 @@ export function TreatmentInfoPage() {
             frequency: 'daily',
             timing: 'anytime',
             is_important: false,
+            dosage: '',
+            quantity: '',
+            custom_frequency_days: null,
+            monday: true,
+            tuesday: true,
+            wednesday: true,
+            thursday: true,
+            friday: true,
+            saturday: true,
+            sunday: true,
           },
         ],
       };
 
-      console.log('📤 Sending onboarding data:', onboardingData);
+      console.log('📤 Sending onboarding data:');
+      console.log('  - avatar_name:', onboardingData.avatar_name);
+      console.log('  - duration_weeks:', onboardingData.duration_weeks);
+      console.log('  - task_templates count:', onboardingData.task_templates.length);
+      console.log('  ✅ start_date will be automatically set to today by backend');
+      console.log('Full payload:', JSON.stringify(onboardingData, null, 2));
 
       // Appel API
       const response = await apiService.completeOnboarding(onboardingData);
@@ -132,6 +168,12 @@ export function TreatmentInfoPage() {
     } catch (error: any) {
       console.error('❌ Onboarding error:', error);
       
+      // 🔍 DEBUG: Afficher les erreurs détaillées de Django
+      if (error.response?.data) {
+        console.error('🔴 Django validation errors:');
+        console.error(JSON.stringify(error.response.data, null, 2));
+      }
+      
       let errorMsg = 'Failed to complete setup. Please try again.';
       if (error.response?.data) {
         const data = error.response.data;
@@ -141,6 +183,12 @@ export function TreatmentInfoPage() {
           errorMsg = data.error;
         } else if (data.detail) {
           errorMsg = data.detail;
+        } else if (Object.keys(data).length > 0) {
+          // Afficher le premier champ en erreur
+          const firstError = Object.values(data)[0];
+          if (Array.isArray(firstError)) {
+            errorMsg = firstError[0];
+          }
         }
       }
 
@@ -248,17 +296,7 @@ export function TreatmentInfoPage() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="start_date" className="text-slate-700 mb-2 block">
-                  Start Date
-                </Label>
-                <Input
-                  id="start_date"
-                  type="date"
-                  value={treatmentData.start_date}
-                  onChange={(e) => handleChange('start_date', e.target.value)}
-                />
-              </div>
+              {/* ✅ SUPPRIMÉ : Champ start_date - sera automatiquement aujourd'hui */}
 
               <div>
                 <Label htmlFor="notes" className="text-slate-700 mb-2 block">
@@ -271,11 +309,18 @@ export function TreatmentInfoPage() {
                   placeholder="Any additional information..."
                 />
               </div>
+
+              {/* ✅ Info message pour l'utilisateur */}
+              <div className="bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl p-4 border border-teal-100">
+                <p className="text-sm text-slate-600 text-center">
+                  💡 Your treatment will start today by default
+                </p>
+              </div>
             </div>
 
             <div className="flex gap-3">
               <Button
-                onClick={() => navigate('/onboarding/avatar-customize')}
+                onClick={() => navigate('/avatar-customize')}
                 variant="outline"
                 className="flex-1"
                 disabled={isLoading}

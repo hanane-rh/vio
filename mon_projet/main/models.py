@@ -2,7 +2,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date  # ✅ AJOUTÉ 'date' à l'import
 
 class AvatarConfig(models.Model):
     """Configuration de l'avatar du future self"""
@@ -56,11 +56,11 @@ class TreatmentInfo(models.Model):
     hospital = models.CharField(max_length=255, blank=True)
     
     # Durée du traitement
-    start_date = models.DateField()
+    start_date = models.DateField(default=date.today)  # ✅ AJOUTÉ default=date.today
     duration_weeks = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(1000)])
     
     # Dates calculées
-    end_date = models.DateField()  # Calculée à partir de start_date + duration
+    end_date = models.DateField(null=True, blank=True)  # ✅ AJOUTÉ null=True, blank=True car calculée
     
     # Notes personnelles
     notes = models.TextField(blank=True)
@@ -74,7 +74,8 @@ class TreatmentInfo(models.Model):
     
     def save(self, *args, **kwargs):
         # Calculer la date de fin
-        if self.start_date:
+        # ✅ Vérifier que start_date ET duration_weeks existent
+        if self.start_date and self.duration_weeks:
             self.end_date = self.start_date + timedelta(weeks=self.duration_weeks)
         super().save(*args, **kwargs)
     

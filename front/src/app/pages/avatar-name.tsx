@@ -1,14 +1,14 @@
-// src/app/pages/onboarding/avatar-name.tsx
+// src/app/pages/avatar-name.tsx
 // Step 1: Nommer l'avatar
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, ChevronRight } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 
 export function AvatarNamePage() {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ export function AvatarNamePage() {
     console.log('✅ Avatar name saved:', avatarName || 'Your Future Self');
     
     // Naviguer vers la prochaine étape
-    navigate('/onboarding/avatar-customize');
+    navigate('/avatar-customize');
   };
 
   return (
@@ -81,7 +81,7 @@ export function AvatarNamePage() {
 
             <div className="flex gap-3">
               <Button
-                onClick={() => navigate('/onboarding/welcome')}
+                onClick={() => navigate('/welcome')}
                 variant="outline"
                 className="flex-1"
               >
