@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, MessageCircle, CheckCircle, Calendar } from 'lucide-react';
+import { Sparkles, MessageCircle, CheckCircle, Calendar, Trash2, Edit, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { AvatarDisplay } from '../components/avatar-display';
 import { useUser } from '../../context/user-context';
@@ -86,6 +88,8 @@ export function FutureSelfDialogue() {
   });
     const [avatarName, setAvatarName] = useState('your future self');
 const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.png');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
 
   const completedCount = actions.filter(a => a.completed).length;
   const progress = (completedCount / actions.length) * 100;
@@ -144,6 +148,29 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
       ];
       toast.success(encouragements[Math.floor(Math.random() * encouragements.length)]);
     }
+  };
+
+  const deleteAction = (id: string) => {
+    setActions(prev => prev.filter(action => action.id !== id));
+    toast.success('Task deleted');
+  };
+
+  const addTask = () => {
+    if (!newTaskTitle.trim()) {
+      toast.error('Please enter a task title');
+      return;
+    }
+
+    const newTask: TreatmentAction = {
+      id: Date.now().toString(),
+      title: newTaskTitle,
+      completed: false,
+    };
+
+    setActions(prev => [...prev, newTask]);
+    setNewTaskTitle('');
+    setIsEditModalOpen(false);
+    toast.success('Task added!');
   };
 
   const silhouetteOpacity = Math.min(overallProgress / 100, 1);
@@ -206,10 +233,20 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
           transition={{ delay: 0.1 }}
         >
           <Card className="p-6 bg-white/60 backdrop-blur-sm border-violet-100">
-            <h2 className="text-2xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-violet-500" />
-              Today's Treatment Actions
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold text-slate-800 flex items-center gap-2">
+                <CheckCircle className="w-6 h-6 text-violet-500" />
+                Today's Treatment Actions
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditModalOpen(true)}
+                className="text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+            </div>
             
             <div className="space-y-3 mb-6">
               {actions.map((action, index) => (
@@ -218,26 +255,38 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`p-4 rounded-xl border transition-all duration-300 cursor-pointer ${
+                  className={`p-4 rounded-xl border transition-all duration-300 ${
                     action.completed
                       ? 'bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200'
                       : 'bg-white border-slate-200 hover:border-violet-200'
                   }`}
-                  onClick={() => toggleAction(action.id)}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 cursor-pointer ${
                         action.completed
                           ? 'bg-violet-500 border-violet-500'
                           : 'border-slate-300'
                       }`}
+                      onClick={() => toggleAction(action.id)}
                     >
                       {action.completed && <CheckCircle className="w-4 h-4 text-white" fill="currentColor" />}
                     </div>
-                    <span className={`flex-1 ${action.completed ? 'text-slate-600' : 'text-slate-800'}`}>
+                    <span 
+                      className={`flex-1 cursor-pointer ${action.completed ? 'text-slate-600' : 'text-slate-800'}`}
+                      onClick={() => toggleAction(action.id)}
+                    >
                       {action.title}
                     </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteAction(action.id);
+                      }}
+                      className="text-red-400 hover:text-red-600 transition-colors p-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -344,6 +393,62 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
           </AnimatePresence>
         </div>
       </motion.div>
+
+      {/* Add Task Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="bg-white/95 backdrop-blur-sm max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-slate-800">Add a daily treatment action</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 pt-4">
+            {/* Avatar with Speech Bubble */}
+            <div className="flex flex-col items-center space-y-3">
+              <div className="relative bg-blue-50 px-4 py-3 rounded-2xl border border-blue-200">
+                <p className="text-sm text-slate-700 italic text-center">
+                  Add a treatment action you want to do it daily
+                </p>
+                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-blue-50 border-r border-b border-blue-200 rotate-45"></div>
+              </div>
+              
+              <div className="w-24 h-24">
+                <img
+                  src={selectedAvatarImage}
+                  alt={avatarName}
+                  className="w-full h-full object-contain"
+                  style={{ imageRendering: 'pixelated' }}
+                />
+              </div>
+            </div>
+
+            {/* Input Field */}
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                treatment action :
+              </label>
+              <Input
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                placeholder="......"
+                className="w-full"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    addTask();
+                  }
+                }}
+              />
+            </div>
+
+            {/* Add Button */}
+            <Button
+              onClick={addTask}
+              className="w-full bg-gradient-to-r from-cyan-400 to-blue-400 hover:from-cyan-500 hover:to-blue-500 text-white"
+            >
+              Add task
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
