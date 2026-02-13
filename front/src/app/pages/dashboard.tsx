@@ -12,20 +12,21 @@ import { apiService } from '../../services/api';
 
 // Avatar characters with unlock requirements
 const AVATAR_CHARACTERS = [
-  { id: 'avatar1', name: 'Princess', image: '👸', unlocked: true, requiredPoints: 0 },
-  { id: 'avatar2', name: 'Hero', image: '🧑', unlocked: false, requiredPoints: 50 },
-  { id: 'avatar3', name: 'Warrior', image: '⚔️', unlocked: false, requiredPoints: 100 },
-  { id: 'avatar4', name: 'Mage', image: '🧙', unlocked: false, requiredPoints: 150 },
-  { id: 'avatar5', name: 'Knight', image: '🛡️', unlocked: false, requiredPoints: 200 },
-  { id: 'avatar6', name: 'Elder', image: '👵', unlocked: false, requiredPoints: 250 },
-  { id: 'avatar7', name: 'Sage', image: '🧓', unlocked: false, requiredPoints: 300 },
-  { id: 'avatar8', name: 'Queen', image: '👑', unlocked: false, requiredPoints: 350 },
-  { id: 'avatar9', name: 'Healer', image: '⚕️', unlocked: false, requiredPoints: 400 },
-  { id: 'avatar10', name: 'Champion', image: '🏆', unlocked: false, requiredPoints: 450 },
-  { id: 'avatar11', name: 'Guardian', image: '🛡️', unlocked: false, requiredPoints: 500 },
-  { id: 'avatar12', name: 'Master', image: '🎖️', unlocked: false, requiredPoints: 600 },
-  { id: 'avatar13', name: 'Legend', image: '🌟', unlocked: false, requiredPoints: 750 },
+  { id: 'avatar1', name: 'Boy', image: '/assert/avatar1.png', requiredPoints: 0 },
+  { id: 'avatar2', name: 'Girl', image: '/assert/avatar2.png', requiredPoints: 0 },
+  { id: 'avatar3', name: 'Girl2', image: '/assert/avatar3.png', requiredPoints: 100 },
+  { id: 'avatar4', name: 'Boy2', image: '/assert/avatar4.png', requiredPoints: 150 },
+  { id: 'avatar5', name: 'Mario', image: '/assert/avatar5.png', requiredPoints: 200 },
+  { id: 'avatar6', name: 'Cat', image: '/assert/avatar6.png', requiredPoints: 250 },
+  { id: 'avatar7', name: 'Hijabi', image: '/assert/avatar7.png', requiredPoints: 300 },
+  { id: 'avatar8', name: 'Dog', image: '/assert/avatar8.png', requiredPoints: 350 },
+  { id: 'avatar9', name: 'BoyDog', image: '/assert/avatar9.png', requiredPoints: 400 },
+  { id: 'avatar10', name: 'HatBoy', image: '/assert/avatar10.png', requiredPoints: 250 },
+  { id: 'avatar11', name: 'Boy3', image: '/assert/avatar11.png', requiredPoints: 300 },
+  { id: 'avatar12', name: 'BabyBoy', image: '/assert/avatar12.png', requiredPoints: 350 },
+  { id: 'avatar13', name: 'GirlCat', image: '/assert/avatar13.png', requiredPoints: 400 },
 ];
+
 
 interface Task {
   id: string;
@@ -42,6 +43,7 @@ export function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState('avatar1');
+  const [avatarName, setAvatarName] = useState('your future self');
   const [points, setPoints] = useState(5); // User points
   const [dayStreak, setDayStreak] = useState(0);
 
@@ -49,6 +51,10 @@ export function Dashboard() {
   useEffect(() => {
     initializeTasks();
     loadUserProgress();
+    const savedName = localStorage.getItem('vio-onboarding-avatar-name');
+  if (savedName) {
+    setAvatarName(savedName);
+  }
   }, []);
 
   const initializeTasks = async () => {
@@ -217,24 +223,32 @@ export function Dashboard() {
           {/* Points Badge */}
           <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-100 to-amber-100 border-2 border-yellow-300 rounded-full">
             <Trophy className="w-5 h-5 text-yellow-600" />
-            <span className="font-bold text-yellow-800 text-lg">{points}</span>
+            <span className="font-bold text-yellow-700 text-lg">{points}</span>
           </div>
 
           {/* Avatar Button */}
           <button
-            onClick={() => setShowAvatarModal(true)}
-            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-400 flex items-center justify-center text-3xl hover:scale-105 transition-transform shadow-lg border-2 border-white"
-          >
-            {currentAvatar.image}
-          </button>
+  onClick={() => setShowAvatarModal(true)}
+  className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-400 flex items-center justify-center hover:scale-105 transition-transform shadow-lg border-3 overflow-hidden"
+>
+  <img
+    src={currentAvatar.image}
+    alt={currentAvatar.name}
+    className="w-full h-full object-contain"
+    style={{ imageRendering: 'pixelated' }}
+  />
+</button>
+
         </motion.div>
       </div>
 
       {/* Progress Cards & Avatar Message */}
-      <div className="grid lg:grid-cols-[1fr,400px] gap-6">
-        {/* Left: Progress Cards */}
-        <div className="grid sm:grid-cols-3 gap-4">
-          <Card className="p-4 bg-gradient-to-br from-teal-50 to-emerald-50 border-teal-100">
+<div className="grid lg:grid-cols-[1fr_580px] gap-6 items-start">
+  
+  {/* Left: Progress Cards (VERTICAL STACK) */}
+  <div className="flex flex-col gap-4">
+
+          <Card className="p-4 bg-gradient-to-br from-teal-50 to-emerald-50 border-teal-100 border-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 text-white" />
@@ -246,9 +260,9 @@ export function Dashboard() {
             </div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-br from-violet-50 to-purple-50 border-violet-100">
+          <Card className="p-4 bg-gradient-to-br from-violet-50 to-purple-50 border-violet-100 border-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400 to-purple-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400 to-purple-400 flex items-center justify-center ">
                 <Zap className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -258,7 +272,7 @@ export function Dashboard() {
             </div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-100">
+          <Card className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-100 border-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center">
                 <StarIcon className="w-5 h-5 text-white" />
@@ -272,27 +286,36 @@ export function Dashboard() {
         </div>
 
         {/* Right: Avatar Message Card */}
-        <Card className="p-6 bg-gradient-to-br from-pink-50 to-purple-50 border-pink-100">
+        <Card className="p-6 bg-gradient-to-br from-gray-50 to-gray-50 border-green-200 border-3">
           <div className="flex flex-col items-center text-center space-y-4">
-            {/* Avatar */}
-            <div className="text-6xl">{currentAvatar.image}</div>
-            
             {/* Speech Bubble */}
             <div className="relative bg-white px-6 py-4 rounded-2xl shadow-sm border border-pink-200">
-              <p className="text-sm text-slate-700 leading-relaxed">
-                Welcome! check your today's treatment actions, you can do it.
+              <p className="text-sm text-slate-700 leading-relaxed italic">
+                "Welcome! check your today's treatment actions, you can do it."
               </p>
               {/* Triangle pointer */}
               <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-pink-200 rotate-45"></div>
             </div>
+            {/* Avatar */}
+            <div className="w-29 h-29">
+  <img
+    src={currentAvatar.image}
+    alt={currentAvatar.name}
+    className="w-full h-full object-contain"
+    style={{ imageRendering: 'pixelated' }}
+  />
+</div>
 
-            <p className="text-sm font-medium text-slate-600">Your future self</p>
+            <p className="text-sm font-medium text-slate-600">
+  {avatarName}
+</p>
+
           </div>
         </Card>
       </div>
 
       {/* Daily Progress */}
-      <Card className="p-4 bg-white/60 backdrop-blur-sm border-slate-200">
+      <Card className="p-4 bg-white/60 backdrop-blur-sm border-green-200 border-2">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-teal-500" />
@@ -304,7 +327,7 @@ export function Dashboard() {
       </Card>
 
       {/* Day Streak Card */}
-      <Card className="p-4 bg-gradient-to-r from-orange-50 to-red-50 border-orange-100">
+      <Card className="p-4 bg-gradient-to-r from-orange-50 to-red-50 border-orange-100 border-2">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
             <Flame className="w-5 h-5 text-white" />
@@ -319,7 +342,7 @@ export function Dashboard() {
       {/* Quick Action Cards */}
       <div className="grid sm:grid-cols-2 gap-4">
         <Link to="/constellation">
-          <Card className="p-6 bg-gradient-to-br from-blue-100 to-purple-100 border-blue-200 hover:shadow-lg transition-all cursor-pointer group">
+          <Card className="p-6 bg-gradient-to-br from-blue-100 to-purple-100 border-blue-200 hover:shadow-lg transition-all cursor-pointer group border-2">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-800 text-lg mb-1">Treatment Memory Constellation</h3>
@@ -336,7 +359,7 @@ export function Dashboard() {
         </Link>
 
         <Link to="/routines">
-          <Card className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200 hover:shadow-lg transition-all cursor-pointer group">
+          <Card className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200 hover:shadow-lg transition-all cursor-pointer group border-2">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-800 text-lg mb-1">Treatment Routine Builder</h3>
@@ -421,7 +444,15 @@ export function Dashboard() {
                       )}
 
                       {/* Avatar */}
-                      <div className="text-5xl mb-2 text-center">{avatar.image}</div>
+                      <div className="w-20 h-20 mx-auto mb-2">
+  <img
+    src={avatar.image}
+    alt={avatar.name}
+    className="w-full h-full object-contain"
+    style={{ imageRendering: 'pixelated' }}
+  />
+</div>
+
 
                       {/* Get/Unlock Button */}
                       <button

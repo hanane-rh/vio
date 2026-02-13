@@ -169,6 +169,15 @@ export function TreatmentInfoPage() {
 
       console.log('✅ Onboarding completed:', response.data);
 
+      // ✅ Save selected avatar for dashboard
+if (avatarConfigStr) {
+  const config = JSON.parse(avatarConfigStr);
+  if (config.avatar) {
+    localStorage.setItem('vio-selected-avatar', config.avatar);
+  }
+}
+
+
       // Nettoyer localStorage temporaire
       localStorage.removeItem('vio-onboarding-avatar-name');
       localStorage.removeItem('vio-onboarding-avatar-config');

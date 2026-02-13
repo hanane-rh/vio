@@ -84,10 +84,12 @@ export function FutureSelfDialogue() {
     const saved = localStorage.getItem('carepath-unlocked-messages');
     return saved ? JSON.parse(saved) : [];
   });
+    const [avatarName, setAvatarName] = useState('your future self');
+const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.png');
 
   const completedCount = actions.filter(a => a.completed).length;
   const progress = (completedCount / actions.length) * 100;
-  const overallProgress = Math.min(progress * 2, 100); // Scale up for demo
+  const overallProgress = Math.min(progress, 100); // Scale up for demo
 
   useEffect(() => {
     localStorage.setItem('carepath-actions', JSON.stringify(actions));
@@ -105,6 +107,17 @@ export function FutureSelfDialogue() {
       }
     });
   }, [overallProgress, unlockedMessages]);
+    useEffect(() => {
+  // Load custom avatar name
+  const savedName = localStorage.getItem('vio-onboarding-avatar-name');
+  if (savedName) setAvatarName(savedName);
+
+  // Load selected avatar image
+  const savedAvatar = localStorage.getItem('vio-selected-avatar');
+  if (savedAvatar) {
+    setSelectedAvatarImage(`/assert/${savedAvatar}.png`);
+  }
+}, []);
 
   const toggleAction = (id: string) => {
     const action = actions.find(a => a.id === id);
@@ -126,6 +139,8 @@ export function FutureSelfDialogue() {
         "Wonderful progress. Keep going!",
         "Your dedication is inspiring. ✨",
         "Amazing work! You're becoming stronger.",
+        "Amazing work! You're becoming stronger.",
+        "Amazing work! You're becoming stronger.",
       ];
       toast.success(encouragements[Math.floor(Math.random() * encouragements.length)]);
     }
@@ -135,17 +150,46 @@ export function FutureSelfDialogue() {
   const silhouetteClarity = overallProgress > 50 ? 'grayscale-0' : 'grayscale';
 
   return (
-    <div className="space-y-8">
-      {/* Header with Avatar */}
+    <div className="relative space-y-8">
+        {/* Floating Avatar Guide */}
+<div className="hidden lg:flex absolute top-70 right-10 flex-col items-center text-center z-10">
+  
+  {/* Speech Bubble */}
+  <div className="relative bg-white px-5 py-3 rounded-2xl shadow-sm border border-pink-200 max-w-[250px]">
+    <div className="text-center">
+              <p className="text-sm text-slate-600 italic">
+                {overallProgress < 20 && "Let's check today's tasks, you can do it..."}
+                {overallProgress >= 20 && overallProgress <40 && "Good job doing your first task..."}
+                {overallProgress >= 40 && overallProgress < 60 && "Your future self is here with you..."}
+                {overallProgress >= 60 && overallProgress < 80 && "Checked another one, You are amazing..."}
+                {overallProgress >= 80 && overallProgress < 100 && "You are almost there, keep going..."}
+                {overallProgress >= 100 && "Yohoo! you finished it all , I'm so proud of you."}
+              </p>
+            </div>
+
+    {/* Pointer */}
+    <div className="absolute -bottom-2 right-45 w-4 h-4 bg-white border-r border-b border-pink-200 rotate-45"></div>
+  </div>
+</div>
+<div className="hidden lg:flex absolute top-90 right-40 flex-col items-center text-center z-10">
+  {/* Avatar */}
+  <div className="w-60 h-55 mt-2">
+    <img
+      src={selectedAvatarImage}
+      alt={avatarName}
+      className="w-full h-full object-contain"
+      style={{ imageRendering: 'pixelated' }}
+    />
+  </div>
+</div>
+
+      
       <div className="grid lg:grid-cols-[1fr,auto] gap-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center lg:text-left space-y-4"
         >
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-400 mb-2">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
           <h1 className="text-4xl font-bold text-slate-800">Future Self Dialogue</h1>
           <p className="text-lg text-slate-600 max-w-2xl">
             Your future self is waiting to connect with you. Complete your treatment actions to strengthen the bond.
@@ -199,7 +243,7 @@ export function FutureSelfDialogue() {
               ))}
             </div>
 
-            <div className="space-y-2">
+            <div className="relative space-y-2">
               <div className="flex justify-between text-sm text-slate-600">
                 <span>Your Progress</span>
                 <span className="font-semibold">{Math.round(overallProgress)}%</span>
@@ -215,40 +259,15 @@ export function FutureSelfDialogue() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 border-violet-100 min-h-[400px] flex flex-col">
+          <Card className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 border-violet-100 min-h-[545px] flex flex-col">
             <h2 className="text-2xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-violet-500" />
               Your Future Self
             </h2>
 
-            {/* Avatar Silhouette */}
-            <div className="flex-1 flex items-center justify-center mb-6">
-              <motion.div
-                animate={{ opacity: silhouetteOpacity }}
-                transition={{ duration: 1 }}
-                className="relative"
-              >
-                <div className={`w-48 h-48 rounded-full bg-gradient-to-br from-violet-300 to-purple-300 flex items-center justify-center shadow-lg ${silhouetteClarity} transition-all duration-1000`}>
-                  <Sparkles className="w-24 h-24 text-white" strokeWidth={1.5} />
-                </div>
-                {overallProgress >= 50 && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2 w-12 h-12 bg-gradient-to-br from-yellow-300 to-amber-300 rounded-full flex items-center justify-center shadow-md"
-                  >
-                    <Sparkles className="w-6 h-6 text-white" fill="currentColor" />
-                  </motion.div>
-                )}
-              </motion.div>
-            </div>
-
             <div className="text-center">
-              <p className="text-sm text-slate-600 italic">
-                {overallProgress < 20 && "A soft silhouette begins to form..."}
-                {overallProgress >= 20 && overallProgress < 50 && "Your future self is becoming clearer..."}
-                {overallProgress >= 50 && overallProgress < 80 && "They're almost fully present now..."}
-                {overallProgress >= 80 && "Your future self is here with you."}
+              <p className="hidden lg:flex absolute top-155 right-35 flex-col items-center text-center z-10 text-sm text-slate-600 italic">
+                I'm here with you to complete your tasks
               </p>
             </div>
           </Card>

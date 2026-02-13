@@ -26,19 +26,13 @@ export function WelcomePage() {
         boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
         textAlign: 'center'
       }}>
-        <div style={{
-          width: '80px',
-          height: '80px',
-          margin: '0 auto 24px',
-          backgroundColor: '#14b8a6',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '40px'
-        }}>
-          💚
-        </div>
+        <div className="inline-flex items-center justify-center w-25 h-25 mb-4">
+            <img 
+             src='/assert/logovio.png'
+              alt="VIO Logo" 
+             className="w-full h-full object-contain"
+             />
+            </div>
 
         <h1 style={{
           fontSize: '36px',

@@ -8,7 +8,6 @@ import { ProtectedRoute } from './components/protected-route';
 import { Dashboard } from './pages/dashboard';
 import { FutureSelfDialogue } from './pages/future-self-dialogue';
 import { Constellation } from './pages/constellation';
-import { AdaptiveChallenges } from './pages/adaptive-challenges';
 import { BreathingMeditation } from './pages/breathing-meditation';
 import { RoutineBuilder } from './pages/routine-builder';
 import { FutureSelfTalkPage } from './pages/future-self-talk';
@@ -110,7 +109,6 @@ export const router = createBrowserRouter([
       { index: true, element: <Dashboard /> },
       { path: 'future-self', element: <FutureSelfDialogue /> },
       { path: 'constellation', element: <Constellation /> },
-      { path: 'challenges', element: <AdaptiveChallenges /> },
       { path: 'breathing', element: <BreathingMeditation />},
       { path: 'routines', element: <RoutineBuilder />},
     ],

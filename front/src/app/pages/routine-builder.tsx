@@ -28,6 +28,9 @@ export function RoutineBuilder() {
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [notes, setNotes] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('pill');
+  const [avatarName, setAvatarName] = useState('your future self');
+const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.png');
+
 
   useEffect(() => {
     localStorage.setItem('carepath-routines', JSON.stringify(routines));
@@ -78,6 +81,19 @@ export function RoutineBuilder() {
 
     return () => clearInterval(interval);
   }, [routines]);
+
+  useEffect(() => {
+  // Load custom avatar name
+  const savedName = localStorage.getItem('vio-onboarding-avatar-name');
+  if (savedName) setAvatarName(savedName);
+
+  // Load selected avatar image
+  const savedAvatar = localStorage.getItem('vio-selected-avatar');
+  if (savedAvatar) {
+    setSelectedAvatarImage(`/assert/${savedAvatar}.png`);
+  }
+}, []);
+
 
   const openDialog = (routine?: RoutineTask) => {
     if (routine) {
@@ -202,16 +218,39 @@ export function RoutineBuilder() {
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="space-y-8">
+    <div className="relative space-y-8">
+        {/* Floating Avatar Guide */}
+<div className="hidden lg:flex absolute top-0 right-10 flex-col items-center text-center z-10">
+  
+  {/* Speech Bubble */}
+  <div className="relative bg-white px-5 py-3 rounded-2xl shadow-sm border border-pink-200 max-w-[220px]">
+    <p className="text-sm text-slate-700 leading-relaxed italic">
+      "Check your routines, they are important for your treatment progress!"
+    </p>
+
+    {/* Pointer */}
+    <div className="absolute -bottom-2 right-45 w-4 h-4 bg-white border-r border-b border-pink-200 rotate-45"></div>
+  </div>
+</div>
+<div className="hidden lg:flex absolute top-27 right-45 flex-col items-center text-center z-10">
+  {/* Avatar */}
+  <div className="w-35 h-35 mt-2">
+    <img
+      src={selectedAvatarImage}
+      alt={avatarName}
+      className="w-full h-full object-contain"
+      style={{ imageRendering: 'pixelated' }}
+    />
+  </div>
+</div>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center lg:text-left space-y-4"
+        className="text-center lg:text-left space-y-4 pr-0 lg:pr-56"
       >
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-400 mb-2">
-          <Clock className="w-8 h-8 text-white" />
-        </div>
+        
         <h1 className="text-4xl font-bold text-slate-800">Treatment Routine Builder</h1>
         <p className="text-lg text-slate-600 max-w-2xl">
           Organize your healing journey with gentle, supportive routines. Set your own pace — we are here to guide, not pressure.
@@ -363,7 +402,8 @@ export function RoutineBuilder() {
           </DialogContent>
         </Dialog>
       </motion.div>
-
+      <br></br>
+      <br></br>
       {/* Today's Routines */}
       <div>
         <h2 className="text-2xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -396,7 +436,7 @@ export function RoutineBuilder() {
                         ? 'bg-gradient-to-r from-teal-50 to-emerald-50 border-teal-200'
                         : status === 'upcoming'
                         ? 'bg-white/60 backdrop-blur-sm border-slate-200'
-                        : 'bg-amber-50/50 border-amber-200'
+                        : 'bg-amber-50/50 border-amber-100 border-3'
                     }`}
                   >
                     <div className="flex items-start gap-4">

@@ -42,6 +42,17 @@ export function Constellation() {
   const [newStarNote, setNewStarNote] = useState<string>('');
   const [isAddingDialogOpen, setIsAddingDialogOpen] = useState(false);
   const [showAvatarMessage, setShowAvatarMessage] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState('avatar1');
+const [avatarName, setAvatarName] = useState('your future self');
+
+useEffect(() => {
+  const savedAvatar = localStorage.getItem('vio-selected-avatar');
+  const savedName = localStorage.getItem('vio-onboarding-avatar-name');
+
+  if (savedAvatar) setSelectedAvatar(savedAvatar);
+  if (savedName) setAvatarName(savedName);
+}, []);
+
 
   useEffect(() => {
     localStorage.setItem('carepath-constellation', JSON.stringify(stars));
@@ -55,7 +66,7 @@ export function Constellation() {
       setShowAvatarMessage(true);
       
       setTimeout(() => {
-        toast.message(`✨ ${profile?.avatar.name || 'Your Future Self'}`, {
+        toast.message(`✨ || 'Your Future Self'}`, {
           description: message,
           duration: 6000,
         });
@@ -66,6 +77,27 @@ export function Constellation() {
       }, 6000);
     }
   }, [stars.length, profile]);
+
+
+const AVATAR_CHARACTERS = [
+  { id: 'avatar1', name: 'Boy', image: '/assert/avatar1.png' },
+  { id: 'avatar2', name: 'Girl', image: '/assert/avatar2.png' },
+  { id: 'avatar3', name: '/assert/avatar3.png' },
+  { id: 'avatar4', name: 'Boy2', image: '/assert/avatar4.png' },
+  { id: 'avatar5', name: 'Mario', image: '/assert/avatar5.png' },
+  { id: 'avatar6', name: 'Cat', image: '/assert/avatar6.png' },
+  { id: 'avatar7', name: 'Hijabi', image: '/assert/avatar7.png' },
+  { id: 'avatar8', name: 'Dog', image: '/assert/avatar8.png' },
+  { id: 'avatar9', name: 'BoyDog', image: '/assert/avatar9.png' },
+  { id: 'avatar10', name: 'HatBoy', image: '/assert/avatar10.png' },
+  { id: 'avatar11', name: 'Boy3', image: '/assert/avatar11.png' },
+  { id: 'avatar12', name: 'BabyBoy', image: '/assert/avatar12.png' },
+  { id: 'avatar13', name: 'GirlCat', image: '/assert/avatar13.png' },
+];
+const currentAvatar =
+  AVATAR_CHARACTERS.find(a => a.id === selectedAvatar) ||
+  AVATAR_CHARACTERS[0];
+
 
   const addStar = () => {
     if (!newStarNote.trim()) return;
@@ -119,52 +151,73 @@ export function Constellation() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="grid lg:grid-cols-[1fr,auto] gap-6"
+        className="text-center lg:text-left space-y-4"
       >
         <div className="text-center lg:text-left space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-400 mb-2">
-            <Star className="w-8 h-8 text-white" />
-          </div>
           <h1 className="text-4xl font-bold text-slate-800">Treatment Memory Constellation</h1>
           <p className="text-lg text-slate-600 max-w-2xl">
             Every treatment moment becomes a star in your personal constellation of healing. Create a visual map of your resilience journey.
           </p>
         </div>
 
-        {/* Avatar Display */}
-        {profile && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card className="p-6 bg-white/60 backdrop-blur-sm border-blue-100">
-              <AvatarDisplay
-                config={profile.avatar}
-                size="large"
-                showName
-                animate={showAvatarMessage}
-              />
-            </Card>
-          </motion.div>
-        )}
+        
       </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Object.entries(STAR_TYPES).map(([type, config]) => {
-          const count = stars.filter(s => s.type === type).length;
-          return (
-            <Card key={type} className="p-4 bg-white/60 backdrop-blur-sm border-blue-100">
-              <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${config.color} flex items-center justify-center mb-2`}>
-                <Star className="w-5 h-5 text-white" fill="currentColor" />
-              </div>
-              <div className="text-2xl font-bold text-slate-800">{count}</div>
-              <div className="text-sm text-slate-600">{config.label}</div>
-            </Card>
-          );
-        })}
+      {/* Stats + Avatar Section */}
+<div className="grid lg:grid-cols-[1fr_520px] gap-6 items-start">
+
+  {/* LEFT — Stat Cards */}
+  <div className="grid grid-cols-2 gap-4">
+    {Object.entries(STAR_TYPES).map(([type, config]) => {
+      const count = stars.filter(s => s.type === type).length;
+      return (
+        <Card
+          key={type}
+          className="p-3 bg-white/60 backdrop-blur-sm border-purple-200 border-2"
+        >
+          <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${config.color} flex items-center justify-center mb-2`}>
+            <Star className="w-4 h-5 text-white" fill="currentColor" />
+          </div>
+          <div className="text-xl font-bold text-slate-800">{count}</div>
+          <div className="text-sm text-slate-600">{config.label}</div>
+        </Card>
+      );
+    })}
+  </div>
+
+  {/* RIGHT — Avatar Card */}
+  <Card className="p-12 bg-gradient-to-br from-gray-50 to-gray-50 border-green-200 border-3">
+    <div className="flex flex-col items-center text-center space-y-4">
+
+      {/* Speech Bubble */}
+      <div className="relative bg-white px-6 py-4 rounded-2xl shadow-sm border border-pink-200">
+        <p className="text-sm text-slate-700 leading-relaxed italic">
+          "Let’s see how was your day, every moment is a precious star"
+        </p>
+
+        {/* Triangle pointer */}
+        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-pink-200 rotate-45"></div>
       </div>
+
+      {/* Avatar */}
+      <div className="w-28 h-28">
+        <img
+          src={currentAvatar.image}
+          alt={currentAvatar.name}
+          className="w-full h-full object-contain"
+          style={{ imageRendering: 'pixelated' }}
+        />
+      </div>
+
+      {/* Avatar Name */}
+      <p className="text-sm font-medium text-slate-600">
+        {avatarName}
+      </p>
+    </div>
+  </Card>
+
+</div>
+
 
       {/* Constellation Canvas */}
       <Card className="p-8 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 border-slate-700 min-h-[600px] relative overflow-hidden">

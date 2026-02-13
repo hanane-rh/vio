@@ -49,9 +49,19 @@ export function BreathingMeditation() {
   const [currentMessage, setCurrentMessage] = useState(SUPPORTIVE_MESSAGES[0]);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [completedCycles, setCompletedCycles] = useState(0);
+  const [selectedAvatar, setSelectedAvatar] = useState('avatar1');
+  const [avatarName, setAvatarName] = useState('your future self');
 
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(Date.now());
+
+  // Load avatar from localStorage
+  useEffect(() => {
+    const savedAvatar = localStorage.getItem('vio-selected-avatar');
+    const savedName = localStorage.getItem('vio-onboarding-avatar-name');
+    if (savedAvatar) setSelectedAvatar(savedAvatar);
+    if (savedName) setAvatarName(savedName);
+  }, []);
 
   useEffect(() => {
     if (!isActive) return;
@@ -212,208 +222,205 @@ export function BreathingMeditation() {
   const remainingSeconds = Math.floor(remainingTime % 60);
   const progressPercentage = (elapsedTime / duration) * 100;
 
+  const AVATAR_CHARACTERS = [
+    { id: 'avatar1', name: 'Boy', image: '/assert/avatar1.png' },
+    { id: 'avatar2', name: 'Girl', image: '/assert/avatar2.png' },
+    { id: 'avatar3', name: 'Girl2', image: '/assert/avatar3.png' },
+    { id: 'avatar4', name: 'Boy2', image: '/assert/avatar4.png' },
+    { id: 'avatar5', name: 'Mario', image: '/assert/avatar5.png' },
+    { id: 'avatar6', name: 'Cat', image: '/assert/avatar6.png' },
+    { id: 'avatar7', name: 'Hijabi', image: '/assert/avatar7.png' },
+    { id: 'avatar8', name: 'Dog', image: '/assert/avatar8.png' },
+    { id: 'avatar9', name: 'BoyDog', image: '/assert/avatar9.png' },
+    { id: 'avatar10', name: 'HatBoy', image: '/assert/avatar10.png' },
+    { id: 'avatar11', name: 'Boy3', image: '/assert/avatar11.png' },
+    { id: 'avatar12', name: 'BabyBoy', image: '/assert/avatar12.png' },
+    { id: 'avatar13', name: 'GirlCat', image: '/assert/avatar13.png' },
+  ];
+
+  const currentAvatar = AVATAR_CHARACTERS.find(a => a.id === selectedAvatar) || AVATAR_CHARACTERS[0];
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center space-y-4"
+        className="space-y-4"
       >
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-400 mb-2">
-          <Wind className="w-8 h-8 text-white" />
-        </div>
         <h1 className="text-4xl font-bold text-slate-800">Guided Breathing & Meditation</h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-slate-600 max-w-2xl">
           Find calm in the moment. Let this gentle breathing guide support your wellbeing and reduce treatment stress.
         </p>
       </motion.div>
 
-      {/* Main Breathing Interface */}
+      {/* Main Content - Two Column Layout */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-2xl mx-auto"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid lg:grid-cols-2 gap-6"
       >
-        <Card className="p-8 bg-gradient-to-br from-sky-50 via-blue-50 to-teal-50 border-sky-100">
-          {/* Breathing Orb */}
-          <div className="relative h-96 flex items-center justify-center mb-8">
-            {/* Background glow */}
-            <motion.div
-              animate={{
-                scale: getBubbleScale(),
-                opacity: isActive ? 0.3 : 0.2,
-              }}
-              transition={{
-                duration: phase === 'inhale' 
-                  ? BREATHING_PATTERNS[pattern].inhale
-                  : phase === 'hold'
-                  ? BREATHING_PATTERNS[pattern].hold
-                  : phase === 'exhale'
-                  ? BREATHING_PATTERNS[pattern].exhale
-                  : 1,
-                ease: 'easeInOut',
-              }}
-              className={`absolute w-64 h-64 rounded-full bg-gradient-to-br ${getPhaseColor()} blur-3xl`}
-            />
+        {/* LEFT - Breathing Card */}
+        <Card className="p-8 bg-gradient-to-br from-blue-50 to-purple-50 border-purple-200 border-2">
+          <div className="flex flex-col items-center space-y-6">
+            {/* Breathing Circle */}
+            <div className="relative w-full max-w-xs aspect-square flex items-center justify-center">
+              <motion.div
+                animate={{
+                  scale: getBubbleScale(),
+                }}
+                transition={{
+                  duration: 0.3,
+                  ease: 'easeInOut',
+                }}
+                className="relative w-48 h-48 flex items-center justify-center"
+              >
+                {/* Main circle */}
+                <div className={`w-full h-full rounded-full bg-gradient-to-br ${getPhaseColor()} shadow-2xl flex items-center justify-center relative z-10`}>
+                  <motion.div
+                    key={phase}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center text-white font-semibold text-xl"
+                  >
+                    {getPhaseText()}
+                  </motion.div>
+                </div>
 
-            {/* Main Orb */}
-            <motion.div
-              animate={{
-                scale: getBubbleScale(),
-              }}
-              transition={{
-                duration: phase === 'inhale' 
-                  ? BREATHING_PATTERNS[pattern].inhale
-                  : phase === 'hold'
-                  ? BREATHING_PATTERNS[pattern].hold
-                  : phase === 'exhale'
-                  ? BREATHING_PATTERNS[pattern].exhale
-                  : 1,
-                ease: 'easeInOut',
-              }}
-              className={`relative w-64 h-64 rounded-full bg-gradient-to-br ${getPhaseColor()} shadow-2xl flex items-center justify-center`}
-            >
-              {/* Inner circle with phase text */}
-              <div className="text-center text-white">
-                <motion.div
-                  key={phase}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-2xl font-semibold mb-2"
-                >
-                  {getPhaseText()}
-                </motion.div>
+                {/* Pulse rings */}
                 {isActive && (
-                  <div className="text-sm opacity-80">
-                    {Math.ceil(
-                      (phase === 'inhale' ? BREATHING_PATTERNS[pattern].inhale :
-                       phase === 'hold' ? BREATHING_PATTERNS[pattern].hold :
-                       phase === 'exhale' ? BREATHING_PATTERNS[pattern].exhale : 1) - phaseProgress
-                    )}s
-                  </div>
+                  <>
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.3, 1],
+                        opacity: [0.5, 0, 0.5],
+                      }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                      className="absolute inset-0 rounded-full border-4 border-blue-300"
+                    />
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.3, 1],
+                        opacity: [0.5, 0, 0.5],
+                      }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: 1.5,
+                      }}
+                      className="absolute inset-0 rounded-full border-4 border-purple-300"
+                    />
+                  </>
                 )}
-              </div>
+              </motion.div>
+            </div>
 
-              {/* Pulse rings */}
-              {isActive && (
+            {/* Supportive Message */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentMessage}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="text-center"
+              >
+                <p className="text-slate-600 italic text-sm">
+                  "{currentMessage}"
+                </p>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Controls */}
+            <div className="flex justify-center gap-3 w-full">
+              {!isActive ? (
+                <Button
+                  onClick={startBreathing}
+                  className="bg-gradient-to-r from-cyan-400 to-blue-400 hover:from-cyan-500 hover:to-blue-500 text-white px-6 shadow-lg"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Start Session
+                  <span className="ml-2 text-xs">+5pts</span>
+                </Button>
+              ) : (
                 <>
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.3, 1],
-                      opacity: [0.5, 0, 0.5],
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    }}
-                    className="absolute inset-0 rounded-full border-4 border-white"
-                  />
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.3, 1],
-                      opacity: [0.5, 0, 0.5],
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                      delay: 1.5,
-                    }}
-                    className="absolute inset-0 rounded-full border-4 border-white"
-                  />
+                  <Button
+                    onClick={pauseBreathing}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Pause className="w-4 h-4 mr-1" />
+                    Pause
+                  </Button>
+                  <Button
+                    onClick={resetBreathing}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                    Reset
+                  </Button>
                 </>
               )}
-            </motion.div>
-          </div>
-
-          {/* Supportive Message */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentMessage}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="text-center mb-8"
-            >
-              <p className="text-xl text-slate-700 italic font-light">
-                "{currentMessage}"
-              </p>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Progress Bar */}
-          {isActive && (
-            <div className="mb-6">
-              <div className="flex justify-between text-sm text-slate-600 mb-2">
-                <span>Session Progress</span>
-                <span>{remainingMinutes}:{remainingSeconds.toString().padStart(2, '0')} remaining</span>
-              </div>
-              <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-sky-400 to-teal-400"
-                  style={{ width: `${progressPercentage}%` }}
-                />
-              </div>
             </div>
-          )}
 
-          {/* Controls */}
-          <div className="flex justify-center gap-3 mb-6">
-            {!isActive ? (
-              <Button
-                onClick={startBreathing}
-                size="lg"
-                className="bg-gradient-to-r from-sky-400 to-blue-400 hover:from-sky-500 hover:to-blue-500 text-white px-8"
-              >
-                <Play className="w-5 h-5 mr-2" />
-                Start Session
-              </Button>
-            ) : (
-              <>
-                <Button
-                  onClick={pauseBreathing}
-                  size="lg"
-                  variant="outline"
-                >
-                  <Pause className="w-5 h-5 mr-2" />
-                  Pause
-                </Button>
-                <Button
-                  onClick={resetBreathing}
-                  size="lg"
-                  variant="outline"
-                >
-                  <RotateCcw className="w-5 h-5 mr-2" />
-                  Reset
-                </Button>
-              </>
+            {/* Progress Bar */}
+            {isActive && (
+              <div className="w-full space-y-2">
+                <div className="flex justify-between text-xs text-slate-600">
+                  <span>Progress</span>
+                  <span>{remainingMinutes}:{remainingSeconds.toString().padStart(2, '0')}</span>
+                </div>
+                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-sky-400 to-teal-400"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+                <div className="text-center">
+                  <Badge variant="outline" className="text-xs text-slate-600">
+                    {completedCycles} cycles
+                  </Badge>
+                </div>
+              </div>
             )}
           </div>
-
-          {/* Stats */}
-          {isActive && (
-            <div className="text-center">
-              <Badge variant="outline" className="text-slate-600">
-                {completedCycles} breathing cycles completed
-              </Badge>
-            </div>
-          )}
         </Card>
-      </motion.div>
 
-      {/* Settings */}
-      {!isActive && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl mx-auto"
-        >
-          <Card className="p-6 bg-white/60 backdrop-blur-sm border-slate-200">
+        {/* RIGHT - Avatar & Customize Section */}
+        <div className="space-y-4">
+          {/* Avatar with Speech Bubble */}
+          <div className="flex flex-col items-center space-y-4">
+            {/* Speech Bubble */}
+            <div className="relative bg-white px-6 py-4 rounded-2xl shadow-sm border border-pink-200">
+              <p className="text-sm text-slate-700 leading-relaxed italic">
+                "help yourself to breathe well"
+              </p>
+              {/* Triangle pointer */}
+              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-pink-200 rotate-45"></div>
+            </div>
+
+            {/* Avatar */}
+            <div className="w-35 h-35">
+              <img
+                src={currentAvatar.image}
+                alt={currentAvatar.name}
+                className="w-full h-full object-contain"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            </div>
+          </div>
+
+          {/* Customize Your Session Card */}
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-pink-200 border-2">
             <h2 className="text-xl font-semibold text-slate-800 mb-4">Customize Your Session</h2>
             
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-4">
               {/* Breathing Pattern */}
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-2 block">
@@ -455,36 +462,16 @@ export function BreathingMeditation() {
                 </Select>
               </div>
             </div>
-
-            {/* Sound Toggle */}
-            <div className="mt-4 pt-4 border-t border-slate-200">
-              <button
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800 transition-colors"
-              >
-                {soundEnabled ? (
-                  <Volume2 className="w-4 h-4" />
-                ) : (
-                  <VolumeX className="w-4 h-4" />
-                )}
-                <span>
-                  {soundEnabled ? 'Ambient sounds enabled' : 'Silent mode'}
-                </span>
-              </button>
-              <p className="text-xs text-slate-500 mt-1 ml-6">
-                Optional calming soundscape (coming soon)
-              </p>
-            </div>
           </Card>
-        </motion.div>
-      )}
+        </div>
+      </motion.div>
 
       {/* Benefits Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="max-w-2xl mx-auto"
+        className="max-w-4xl"
       >
         <Card className="p-6 bg-gradient-to-r from-teal-50 to-emerald-50 border-teal-100">
           <h3 className="font-semibold text-slate-800 mb-3">Why Breathing Exercises?</h3>
