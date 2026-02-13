@@ -1,4 +1,4 @@
-# vio/serializers.py - VERSION SIMPLIFIÉE
+# vio/serializers.py - VERSION SIMPLIFIÃ‰E
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
@@ -98,7 +98,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
         )
-        # Créer les profils associés
+        # CrÃ©er les profils associÃ©s
         UserProfile.objects.create(user=user)
         UserState.objects.create(user=user)
         AvatarConfig.objects.create(user=user)
@@ -108,7 +108,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class OnboardingDataSerializer(serializers.Serializer):
     """
     Serializer for complete onboarding data
-    ✅ VERSION SIMPLIFIÉE : start_date n'est pas inclus - géré automatiquement par le model
+    âœ… VERSION SIMPLIFIÃ‰E : start_date n'est pas inclus - gÃ©rÃ© automatiquement par le model
     """
     
     # Avatar fields
@@ -123,7 +123,7 @@ class OnboardingDataSerializer(serializers.Serializer):
     doctor_name = serializers.CharField(max_length=100, allow_blank=True, required=False)
     hospital = serializers.CharField(max_length=200, allow_blank=True, required=False)
     
-    # ✅ start_date supprimé - sera automatiquement aujourd'hui via model default
+    # âœ… start_date supprimÃ© - sera automatiquement aujourd'hui via model default
     
     duration_weeks = serializers.IntegerField()
     notes = serializers.CharField(allow_blank=True, required=False)
@@ -134,3 +134,25 @@ class OnboardingDataSerializer(serializers.Serializer):
         required=False,
         allow_empty=True
     )
+# notifications/serializers.py
+
+from rest_framework import serializers
+from .models import Notification
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = [
+            'id',
+            'title',
+            'message',
+            'notification_type',
+            'icon',
+            'is_read',
+            'is_dismissed',
+            'scheduled_time',
+            'created_at',
+            'shown_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'shown_at']

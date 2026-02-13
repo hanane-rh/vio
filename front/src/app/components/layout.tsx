@@ -1,11 +1,16 @@
 import { Outlet, Link, useLocation } from 'react-router';
 import { Heart, Sparkles, Star, Zap, Home, Clock, Wind, Bell } from 'lucide-react';
+import { useState } from 'react';
 import { AvatarDisplay } from './avatar-display';
 import { useUser } from '../../context/user-context';
+import { NotificationPopup } from './NotificationPopup';
+import { WelcomeNotification } from './WelcomeNotification';
+import { NotificationPanel } from './NotificationPanel';
 
 export function Layout() {
   const location = useLocation();
   const { profile } = useUser();
+  const [showNotificationPanel, setShowNotificationPanel] = useState(false);
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Home },
@@ -21,22 +26,19 @@ export function Layout() {
       <header className="bg-white/70 backdrop-blur-lg border-b border-teal-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
+            {/* Logo - Left Side */}
             <div className="flex items-center gap-3">
-             <div className="flex items-center gap-2">
-                {/* Option 1: Using Image Logo (if you have a logo file) */}
+              <div className="flex items-center gap-2">
                 <img 
-  src='/assert/logovio.png'             // ← Use the variable, not a string!
-  alt="VIO Logo" 
-  className="w-16 h-18 object-contain"
-/>
-                
-              
-                
+                  src='/assert/logovio.png'
+                  alt="VIO Logo" 
+                  className="w-16 h-18 object-contain"
+                />
                 <span className="text-2xl font-bold text-slate-800">VIO</span>
               </div>
             </div>
 
-            
+            {/* Navigation - Center */}
             <nav className="flex items-center gap-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -56,18 +58,16 @@ export function Layout() {
                   </Link>
                 );
               })}
-              </nav>
-               {/* Notification Bell - Right Side */}
+            </nav>
+
+            {/* Notification Bell - Far Right */}
             <button 
               className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center hover:scale-105 transition-transform shadow-md"
-              onClick={() => {
-                // Handle notification click
-                console.log('Notifications clicked');
-              }}
+              onClick={() => setShowNotificationPanel(true)}
             >
               <Bell className="w-5 h-5 text-white" />
               
-              {/* Optional: Notification Badge (uncomment if you want to show unread count) */}
+              {/* Optional: Badge for unread count */}
               {/* <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold">
                 3
               </span> */}
@@ -76,7 +76,17 @@ export function Layout() {
         </div>
       </header>
 
+      {/* Notification Panel (slides from right) */}
+      <NotificationPanel 
+        isOpen={showNotificationPanel}
+        onClose={() => setShowNotificationPanel(false)}
+      />
 
+      {/* Welcome Notification (shows 2 min after opening site) */}
+      <WelcomeNotification />
+
+      {/* Regular Notification Popup (scheduled notifications) */}
+      <NotificationPopup />
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">

@@ -30,14 +30,13 @@ export function WelcomePage() {
           width: '80px',
           height: '80px',
           margin: '0 auto 24px',
-          backgroundColor: '#14b8a6',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '40px'
         }}>
-          💚
+        <img src="/assert/logovio.png" alt="Avatar" className="w-20 h-20 object-contain" />
         </div>
 
         <h1 style={{

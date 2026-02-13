@@ -55,7 +55,7 @@ export function Constellation() {
       setShowAvatarMessage(true);
       
       setTimeout(() => {
-        toast.message(`✨ ${profile?.avatar.name || 'Your Future Self'}`, {
+        toast.message(`✨ ${profile?.avatar?.name || 'Your Future Self'}`, {
           description: message,
           duration: 6000,
         });
@@ -132,7 +132,7 @@ export function Constellation() {
         </div>
 
         {/* Avatar Display */}
-        {profile && (
+        {profile && profile.avatar && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

@@ -2,7 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    register, login, logout,
+    NotificationViewSet, register, login, logout,
     UserProfileViewSet, AvatarConfigViewSet, TreatmentInfoViewSet,
     TaskTemplateViewSet, TaskViewSet, UserStateViewSet,
     ConstellationStarViewSet, FutureSelfMessageViewSet
@@ -17,6 +17,7 @@ router.register(r'tasks', TaskViewSet, basename='task')
 router.register(r'user-state', UserStateViewSet, basename='user-state')
 router.register(r'constellation', ConstellationStarViewSet, basename='constellation')
 router.register(r'messages', FutureSelfMessageViewSet, basename='message')
+router.register(r'notifications', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     # Auth

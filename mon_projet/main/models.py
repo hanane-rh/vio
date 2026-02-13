@@ -319,3 +319,64 @@ class FutureSelfMessage(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.message_type}"
+# notifications/models.py
+
+from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('reminder', 'Reminder'),
+        ('breathing', 'Breathing'),
+        ('challenge', 'Challenge'),
+        ('achievement', 'Achievement'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    icon = models.CharField(max_length=10, default='👤')  # Fallback emoji
+    
+    # ✅ NEW: Add avatar_image field to store user's avatar
+    avatar_image = models.CharField(max_length=200, blank=True, null=True)
+    
+    scheduled_time = models.TimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    shown_at = models.DateTimeField(null=True, blank=True)
+    
+    is_read = models.BooleanField(default=False)
+    is_dismissed = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.user.username}"
+    
+    def mark_as_shown(self):
+        """Marquer la notification comme affichée"""
+        if not self.shown_at:
+            self.shown_at = timezone.now()
+            self.save()
+    
+    def dismiss(self):
+        """Fermer/supprimer la notification"""
+        self.is_dismissed = True
+        self.save()
+    
+    @property
+    def avatar_url(self):
+        """Get the user's avatar image or fallback to icon"""
+        # Try to get user's avatar config
+        try:
+            avatar_config = self.user.avatar_config
+            if avatar_config and avatar_config.avatar_image:
+                return avatar_config.avatar_image
+        except:
+            pass
+        
+        # Fallback to stored avatar_image or icon
+        return self.avatar_image or self.icon

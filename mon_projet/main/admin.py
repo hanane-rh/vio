@@ -118,3 +118,45 @@ class FutureSelfMessageAdmin(admin.ModelAdmin):
         ('Status', {'fields': ('is_unlocked', 'unlocked_at')}),
         ('Metadata', {'fields': ('created_at',)}),
     )
+# notifications/admin.py
+
+from django.contrib import admin
+from .models import Notification
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = [
+        'id',
+        'user',
+        'title',
+        'notification_type',
+        'scheduled_time',
+        'is_dismissed',
+        'shown_at',
+        'created_at',
+    ]
+    list_filter = [
+        'notification_type',
+        'is_dismissed',
+        'scheduled_time',
+        'created_at',
+    ]
+    search_fields = ['user__username', 'title', 'message']
+    readonly_fields = ['created_at', 'shown_at']
+    
+    fieldsets = (
+        ('Information', {
+            'fields': ('user', 'title', 'message', 'notification_type', 'icon')
+        }),
+        ('Timing', {
+            'fields': ('scheduled_time', 'shown_at', 'created_at')
+        }),
+        ('Status', {
+            'fields': ('is_read', 'is_dismissed')
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user')

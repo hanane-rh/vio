@@ -470,3 +470,108 @@ class FutureSelfMessageViewSet(viewsets.ModelViewSet):
         messages = self.get_queryset().filter(is_unlocked=True)
         serializer = self.get_serializer(messages, many=True)
         return Response(serializer.data)
+# notifications/views.py - FIXED VERSION
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
+from datetime import datetime, time
+from .models import Notification
+from .serializers import NotificationSerializer
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Retourner seulement les notifications de l'utilisateur connecté"""
+        return Notification.objects.filter(
+            user=self.request.user,
+            is_dismissed=False
+        )
+
+    @action(detail=False, methods=['get'])
+    def pending(self, request):
+        """
+        GET /api/v1/notifications/pending/
+        Retourner les notifications qui doivent être affichées maintenant
+        """
+        current_time = timezone.now().time()
+        
+        # Récupérer les notifications non-dismissées pour aujourd'hui
+        notifications = Notification.objects.filter(
+            user=request.user,
+            is_dismissed=False,
+            shown_at__isnull=True,  # Pas encore affichées
+        )
+        
+        # Filtrer celles dont l'heure est passée
+        pending = []
+        for notif in notifications:
+            if notif.scheduled_time <= current_time:
+                notif.mark_as_shown()
+                pending.append(notif)
+        
+        serializer = self.get_serializer(pending, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def dismiss(self, request, pk=None):
+        """
+        POST /api/v1/notifications/{id}/dismiss/
+        Supprimer/fermer une notification
+        """
+        notification = self.get_object()
+        notification.dismiss()
+        return Response({'status': 'dismissed'})
+
+    @action(detail=False, methods=['post'])
+    def dismiss_all(self, request):
+        """
+        POST /api/v1/notifications/dismiss_all/
+        Supprimer toutes les notifications
+        """
+        Notification.objects.filter(
+            user=request.user,
+            is_dismissed=False
+        ).update(is_dismissed=True)
+        return Response({'status': 'all dismissed'})
+
+    @action(detail=False, methods=['get'])
+    def today(self, request):
+        """
+        GET /api/v1/notifications/today/
+        ✅ FIXED: Récupérer toutes les notifications non-dismissées (peu importe quand elles ont été créées)
+        Car les notifications quotidiennes sont créées par le cron job et restent valides jusqu'à ce qu'elles soient dismissées
+        """
+        notifications = Notification.objects.filter(
+            user=request.user,
+            is_dismissed=False,
+        ).order_by('scheduled_time')  # Trier par heure programmée
+        
+        serializer = self.get_serializer(notifications, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def create_welcome(self, request):
+        """
+        POST /api/v1/notifications/create_welcome/
+        Créer une notification de bienvenue
+        """
+        from datetime import time
+        
+        notification = Notification.objects.create(
+            user=request.user,
+            title='Reminder!',
+            message='"Hey, don\'t forget to check your routines before midnight, continue on your progress you can do it"',
+            notification_type='reminder',
+            icon='👤',
+            scheduled_time=time(hour=timezone.now().hour, minute=timezone.now().minute),
+        )
+        notification.mark_as_shown()
+        
+        serializer = self.get_serializer(notification)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

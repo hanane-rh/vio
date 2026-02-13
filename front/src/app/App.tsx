@@ -5,6 +5,7 @@ import { Toaster } from './components/ui/sonner';
 import { EncouragementSystem } from './components/encouragement-system';
 import { UserProvider } from '../context/user-context';
 import { router } from './routes';
+import '../styles/notifications.css';
 
 export default function App() {
   return (

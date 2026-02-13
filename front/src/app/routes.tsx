@@ -1,4 +1,4 @@
-// src/app/routes.tsx - VERSION CORRIGÉE
+// src/app/routes.tsx
 
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from './components/layout';
@@ -88,15 +88,15 @@ export const router = createBrowserRouter([
     ),
   },
   {
-     path: '/future-self-talk',
-     element: (
+    path: '/future-self-talk',
+    element: (
       <RequireAuth>
         <div className="min-h-screen bg-gradient-to-br from-sky-50 via-teal-50 to-emerald-50">
           <FutureSelfTalkPage />
         </div>
       </RequireAuth>
     ),
-   },
+  },
 
   // ============ PAGES PROTÉGÉES (DASHBOARD - ONBOARDING REQUIS) ============
   {
@@ -111,8 +111,8 @@ export const router = createBrowserRouter([
       { path: 'future-self', element: <FutureSelfDialogue /> },
       { path: 'constellation', element: <Constellation /> },
       { path: 'challenges', element: <AdaptiveChallenges /> },
-      { path: 'breathing', element: <BreathingMeditation />},
-      { path: 'routines', element: <RoutineBuilder />},
+      { path: 'breathing', element: <BreathingMeditation /> },
+      { path: 'routines', element: <RoutineBuilder /> },
     ],
   },
 
