@@ -36,7 +36,6 @@ cd vio
 **2. Backend Setup**
 ```bash
 cd mon_projet
-pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver  # Runs on http://localhost:8000
 ```
