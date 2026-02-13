@@ -10,7 +10,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { toast } from 'sonner';
-import logoVio from '../assets/logovio.png';
+
 
 export function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -282,7 +282,7 @@ export function SignUpPage() {
 
             <div className="inline-flex items-center justify-center w-25 h-25 mb-4">
                         <img 
-                         src={logoVio} 
+                         src='/assert/logovio.png'
                           alt="VIO Logo" 
                          className="w-full h-full object-contain"
                          />

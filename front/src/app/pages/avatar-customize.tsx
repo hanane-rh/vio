@@ -80,7 +80,7 @@ export function AvatarCustomizePage() {
     console.log('✅ Avatar config saved:', avatarConfig);
     
     // Navigate to next step
-    navigate('/treatment-info');
+    navigate('/future-self-talk');
   };
 
   return (
@@ -91,11 +91,17 @@ export function AvatarCustomizePage() {
         transition={{ duration: 0.3 }}
         className="w-full max-w-2xl"
       >
-        <Card className="p-8 md:p-12 bg-white border-2 border-teal-400 shadow-2xl rounded-2xl">
-          <div className="space-y-8">
+        <Card className="p-8 md:p-12 bg-white/80 backdrop-blur-sm border-teal-100 shadow-xl">
+          <div className="space-y-4">
             {/* Logo */}
             <div className="flex justify-center">
-              <VioLogo />
+              <div className="inline-flex items-center justify-center w-28 h-28 mb-4">
+                                        <img 
+                                         src='/assert/logovio.png'
+                                          alt="VIO Logo" 
+                                         className="w-full h-full object-contain"
+                                         />
+                                        </div>
             </div>
 
             {/* Title */}
@@ -109,7 +115,7 @@ export function AvatarCustomizePage() {
             </div>
 
             {/* Avatar Selection */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div className="flex justify-center gap-6">
                 {AVATAR_OPTIONS.map((avatar) => (
                   <button

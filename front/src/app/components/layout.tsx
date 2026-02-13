@@ -2,7 +2,6 @@ import { Outlet, Link, useLocation } from 'react-router';
 import { Heart, Sparkles, Star, Zap, Home, Clock, Wind, Bell } from 'lucide-react';
 import { AvatarDisplay } from './avatar-display';
 import { useUser } from '../../context/user-context';
-import logoVio from '../assets/logovio.png';
 
 export function Layout() {
   const location = useLocation();
@@ -26,7 +25,7 @@ export function Layout() {
              <div className="flex items-center gap-2">
                 {/* Option 1: Using Image Logo (if you have a logo file) */}
                 <img 
-  src={logoVio}              // ← Use the variable, not a string!
+  src='/assert/logovio.png'             // ← Use the variable, not a string!
   alt="VIO Logo" 
   className="w-16 h-18 object-contain"
 />

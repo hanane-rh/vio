@@ -41,9 +41,13 @@ export function AvatarNamePage() {
         <Card className="p-8 md:p-12 bg-white/80 backdrop-blur-sm border-teal-100 shadow-xl">
           <div className="space-y-8">
             <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-teal-400 to-emerald-400 shadow-lg mb-4">
-                <Sparkles className="w-10 h-10 text-white" />
-              </div>
+              <div className="inline-flex items-center justify-center w-28 h-28 mb-4">
+                          <img 
+                           src='/assert/logovio.png'
+                            alt="VIO Logo" 
+                           className="w-full h-full object-contain"
+                           />
+                          </div>
               
               <h2 className="text-3xl font-bold text-slate-800">
                 Meet Your Future Self

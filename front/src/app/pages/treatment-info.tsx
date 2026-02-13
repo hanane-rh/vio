@@ -18,6 +18,9 @@ export function TreatmentInfoPage() {
   const navigate = useNavigate();
   const { syncWithBackend } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const [avatarName, setAvatarName] = useState('your future self');
+  const [selectedAvatarImage, setSelectedAvatarImage] = useState('');
+
   
   // ✅ SIMPLIFIÉ : start_date supprimé de l'état
   const [treatmentData, setTreatmentData] = useState({
@@ -29,14 +32,33 @@ export function TreatmentInfoPage() {
     notes: '',
   });
 
-  useEffect(() => {
-    // Charger depuis localStorage si existe
-    const saved = localStorage.getItem('vio-onboarding-treatment');
-    if (saved) {
-      const savedData = JSON.parse(saved);
-      setTreatmentData(savedData);
+ useEffect(() => {
+  // Load treatment data
+  const saved = localStorage.getItem('vio-onboarding-treatment');
+  if (saved) {
+    const savedData = JSON.parse(saved);
+    setTreatmentData(savedData);
+  }
+
+  // Load avatar name
+  const savedName = localStorage.getItem('vio-onboarding-avatar-name');
+  if (savedName) {
+    setAvatarName(savedName);
+  }
+
+  // Load avatar image
+  const savedConfig = localStorage.getItem('vio-onboarding-avatar-config');
+  if (savedConfig) {
+    const config = JSON.parse(savedConfig);
+
+    if (config.avatar === 'avatar1') {
+      setSelectedAvatarImage('/assert/avatar1.png');
+    } else if (config.avatar === 'avatar2') {
+      setSelectedAvatarImage('/assert/avatar2.png');
     }
-  }, []);
+  }
+}, []);
+
 
   const handleComplete = async () => {
     // Validation
@@ -161,9 +183,22 @@ export function TreatmentInfoPage() {
       });
 
       // Rediriger vers le dashboard
-      setTimeout(() => {
-        navigate('/', { replace: true });
-      }, 500);
+      await syncWithBackend();
+
+// 🔥 Force onboarding flag to true in localStorage
+const updatedProfileStr = localStorage.getItem('vio-user-profile');
+if (updatedProfileStr) {
+  const updatedProfile = JSON.parse(updatedProfileStr);
+  updatedProfile.hasCompletedOnboarding = true;
+  localStorage.setItem('vio-user-profile', JSON.stringify(updatedProfile));
+}
+
+toast.success('✨ Setup complete! Welcome to VIO');
+
+setTimeout(() => {
+  navigate('/', { replace: true });
+}, 500);
+
 
     } catch (error: any) {
       console.error('❌ Onboarding error:', error);
@@ -205,6 +240,9 @@ export function TreatmentInfoPage() {
     localStorage.setItem('vio-onboarding-treatment', JSON.stringify(updated));
   };
 
+   const handleContinue = () => {
+    navigate('/treatment-info');
+  };
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <motion.div
@@ -215,16 +253,53 @@ export function TreatmentInfoPage() {
         <Card className="p-8 md:p-12 bg-white/80 backdrop-blur-sm border-teal-100 shadow-xl">
           <div className="space-y-8">
             <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-400 to-cyan-400 shadow-lg mb-4">
-                <Pill className="w-10 h-10 text-white" />
-              </div>
+              
+              <div className="inline-flex items-center justify-center w-28 h-28 mb-4">
+                                                      <img 
+                                                       src='/assert/logovio.png'
+                                                        alt="VIO Logo" 
+                                                       className="w-full h-full object-contain"
+                                                       />
+                                                      </div>
               
               <h2 className="text-3xl font-bold text-slate-800">
-                Your Treatment Journey
+                Tell me more about your journey
               </h2>
-              <p className="text-lg text-slate-600">
-                Help us support you better by sharing your treatment details
-              </p>
+              {/* Avatar Message Preview */}
+<motion.div
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.2 }}
+  className="flex flex-col items-center space-y-4 pt-4"
+>
+  {/* Speech Bubble */}
+  <div className="relative max-w-md">
+    <div className="bg-white border-2 border-slate-200 rounded-3xl px-6 py-4 shadow-sm">
+      <p className="text-center text-slate-700 text-sm md:text-base italic">
+        "Write down your tratment and duration"
+      </p>
+    </div>
+
+    <div className="absolute left-1/2 -bottom-3 transform -translate-x-1/2">
+      <div className="w-5 h-5 bg-white border-r-2 border-b-2 border-slate-200 transform rotate-45"></div>
+    </div>
+  </div>
+
+  {/* Avatar Image */}
+  <div className="w-27 h-27 md:w-24 md:h-24 flex items-center justify-center">
+    {selectedAvatarImage ? (
+      <img
+        src={selectedAvatarImage}
+        alt="Your future self avatar"
+        className="w-full h-full object-contain pixelated"
+        style={{ imageRendering: 'pixelated' }}
+      />
+    ) : (
+      <div className="text-5xl">👤</div>
+    )}
+  </div>
+</motion.div>
+
             </div>
 
             <div className="space-y-4">
@@ -320,7 +395,7 @@ export function TreatmentInfoPage() {
 
             <div className="flex gap-3">
               <Button
-                onClick={() => navigate('/avatar-customize')}
+                onClick={() => navigate('/future-self-talk')}
                 variant="outline"
                 className="flex-1"
                 disabled={isLoading}

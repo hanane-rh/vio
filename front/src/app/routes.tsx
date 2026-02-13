@@ -11,6 +11,7 @@ import { Constellation } from './pages/constellation';
 import { AdaptiveChallenges } from './pages/adaptive-challenges';
 import { BreathingMeditation } from './pages/breathing-meditation';
 import { RoutineBuilder } from './pages/routine-builder';
+import { FutureSelfTalkPage } from './pages/future-self-talk';
 
 // Pages d'authentification
 import { LoginPage } from './pages/login';
@@ -86,6 +87,16 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
   },
+  {
+     path: '/future-self-talk',
+     element: (
+      <RequireAuth>
+        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-teal-50 to-emerald-50">
+          <FutureSelfTalkPage />
+        </div>
+      </RequireAuth>
+    ),
+   },
 
   // ============ PAGES PROTÉGÉES (DASHBOARD - ONBOARDING REQUIS) ============
   {
