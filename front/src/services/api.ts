@@ -224,6 +224,27 @@ class APIService {
   async getUnlockedMessages() {
     return this.axiosInstance.get('/messages/unlocked/');
   }
+
+  // ============ NOTIFICATION ENDPOINTS ============
+
+  async getPendingNotifications() {
+    return this.axiosInstance.get('/notifications/pending/');
+  }
+
+  async dismissNotification(notificationId: number) {
+    return this.axiosInstance.post(`/notifications/${notificationId}/dismiss/`);
+  }
+
+  async dismissAllNotifications() {
+    return this.axiosInstance.post('/notifications/dismiss_all/');
+  }
+
+  async getTodayNotifications() {
+    return this.axiosInstance.get('/notifications/today/');
+  }
+  async createWelcomeNotification() {
+    return this.axiosInstance.post('/notifications/create_welcome/');
+  }
 }
 
 export const apiService = new APIService();

@@ -67,6 +67,7 @@ useEffect(() => {
       
       setTimeout(() => {
         toast.message(`✨ || 'Your Future Self'}`, {
+
           description: message,
           duration: 6000,
         });
@@ -159,8 +160,8 @@ const currentAvatar =
             Every treatment moment becomes a star in your personal constellation of healing. Create a visual map of your resilience journey.
           </p>
         </div>
-
         
+
       </motion.div>
 
       {/* Stats + Avatar Section */}
