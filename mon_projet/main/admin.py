@@ -8,7 +8,12 @@ from .models import (
     UserProfile,
     UserState,
     ConstellationStar,
-    FutureSelfMessage
+    FutureSelfMessage,
+    # ✅ NEW: Add these imports
+    Routine,
+    RoutineCompletion,
+    UserScore,
+    ScoreHistory,
 )
 
 # Avatar Config
@@ -118,9 +123,114 @@ class FutureSelfMessageAdmin(admin.ModelAdmin):
         ('Status', {'fields': ('is_unlocked', 'unlocked_at')}),
         ('Metadata', {'fields': ('created_at',)}),
     )
+
+
+# ============================================================================
+# ✅ NEW: ROUTINE & SCORING SYSTEM ADMIN
+# ============================================================================
+
+@admin.register(Routine)
+class RoutineAdmin(admin.ModelAdmin):
+    list_display = ['title', 'user', 'time', 'frequency', 'is_paused', 'created_at']
+    list_filter = ['frequency', 'is_paused', 'created_at']
+    search_fields = ['title', 'user__username', 'notes']
+    readonly_fields = ['created_at', 'updated_at', 'last_completed']
+    
+    fieldsets = (
+        ('Basic Info', {
+            'fields': ('user', 'title', 'time', 'icon', 'notes')
+        }),
+        ('Frequency', {
+            'fields': ('frequency', 'custom_days')
+        }),
+        ('Status', {
+            'fields': ('is_paused', 'last_completed')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user')
+
+
+@admin.register(RoutineCompletion)
+class RoutineCompletionAdmin(admin.ModelAdmin):
+    list_display = ['user', 'routine', 'completion_date', 'completed_at']
+    list_filter = ['completion_date', 'completed_at']
+    search_fields = ['user__username', 'routine__title']
+    readonly_fields = ['completed_at']
+    date_hierarchy = 'completion_date'
+    
+    fieldsets = (
+        ('Completion Info', {
+            'fields': ('user', 'routine', 'completion_date')
+        }),
+        ('Metadata', {
+            'fields': ('completed_at',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user', 'routine')
+
+
+@admin.register(UserScore)
+class UserScoreAdmin(admin.ModelAdmin):
+    list_display = ['user', 'total_score', 'total_completions', 'current_streak', 'longest_streak', 'updated_at']
+    list_filter = ['created_at', 'updated_at']
+    search_fields = ['user__username']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('User', {
+            'fields': ('user',)
+        }),
+        ('Score', {
+            'fields': ('total_score', 'total_completions')
+        }),
+        ('Streaks', {
+            'fields': ('current_streak', 'longest_streak', 'last_completion_date')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user')
+
+
+@admin.register(ScoreHistory)
+class ScoreHistoryAdmin(admin.ModelAdmin):
+    list_display = ['user', 'points_earned', 'reason', 'routine', 'created_at']
+    list_filter = ['created_at', 'points_earned']
+    search_fields = ['user__username', 'reason', 'routine__title']
+    readonly_fields = ['created_at']
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Info', {
+            'fields': ('user', 'points_earned', 'reason', 'routine')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user', 'routine')
+
+
 # notifications/admin.py
 
-from django.contrib import admin
 from .models import Notification
 
 

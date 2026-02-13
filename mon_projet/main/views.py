@@ -575,3 +575,265 @@ class NotificationViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(notification)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+# vio/views.py - ADD THESE VIEWSETS TO YOUR EXISTING FILE
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
+from datetime import date, datetime
+from django.db.models import F, Q
+
+from .models import Routine, RoutineCompletion, UserScore, ScoreHistory
+from .serializers import (
+    RoutineSerializer, RoutineCompletionSerializer,
+    UserScoreSerializer, ScoreHistorySerializer, LeaderboardSerializer
+)
+
+
+class RoutineViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing user routines
+    """
+    serializer_class = RoutineSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return only the current user's routines"""
+        return Routine.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        """Create a new routine for the current user"""
+        serializer.save(user=self.request.user)
+    
+    @action(detail=False, methods=['get'])
+    def today(self, request):
+        """
+        GET /api/v1/routines/today/
+        Get routines that should run today
+        """
+        routines = self.get_queryset().filter(is_paused=False)
+        
+        # Filter by day of week for weekly routines
+        today = datetime.now().weekday()
+        today_routines = []
+        
+        for routine in routines:
+            if routine.frequency == 'daily':
+                today_routines.append(routine)
+            elif routine.frequency == 'weekly' and routine.custom_days:
+                if today in routine.custom_days:
+                    today_routines.append(routine)
+        
+        serializer = self.get_serializer(today_routines, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        """
+        POST /api/v1/routines/{id}/complete/
+        Mark a routine as completed for today
+        """
+        routine = self.get_object()
+        today = date.today()
+        
+        # Check if already completed today
+        existing = RoutineCompletion.objects.filter(
+            user=request.user,
+            routine=routine,
+            completion_date=today
+        ).exists()
+        
+        if existing:
+            return Response(
+                {'detail': 'Routine already completed today'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create completion record
+        completion = RoutineCompletion.objects.create(
+            user=request.user,
+            routine=routine,
+            completion_date=today
+        )
+        
+        # Update routine's last_completed
+        routine.last_completed = timezone.now()
+        routine.save()
+        
+        # Update user score (+5 points)
+        score, created = UserScore.objects.get_or_create(user=request.user)
+        score.add_completion(today)
+        
+        # Create score history entry
+        ScoreHistory.objects.create(
+            user=request.user,
+            points_earned=5,
+            reason=f"Completed routine: {routine.title}",
+            routine=routine
+        )
+        
+        return Response({
+            'detail': 'Routine completed successfully',
+            'completion': RoutineCompletionSerializer(completion).data,
+            'score': UserScoreSerializer(score).data,
+            'points_earned': 5
+        }, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['post'])
+    def toggle_pause(self, request, pk=None):
+        """
+        POST /api/v1/routines/{id}/toggle_pause/
+        Pause or resume a routine
+        """
+        routine = self.get_object()
+        routine.is_paused = not routine.is_paused
+        routine.save()
+        
+        serializer = self.get_serializer(routine)
+        return Response({
+            'detail': f'Routine {"paused" if routine.is_paused else "resumed"}',
+            'routine': serializer.data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """
+        GET /api/v1/routines/statistics/
+        Get routine statistics for the current user
+        """
+        total_routines = self.get_queryset().count()
+        active_routines = self.get_queryset().filter(is_paused=False).count()
+        paused_routines = self.get_queryset().filter(is_paused=True).count()
+        
+        # Completions this week
+        from datetime import timedelta
+        week_ago = date.today() - timedelta(days=7)
+        completions_this_week = RoutineCompletion.objects.filter(
+            user=request.user,
+            completion_date__gte=week_ago
+        ).count()
+        
+        # Completions today
+        completions_today = RoutineCompletion.objects.filter(
+            user=request.user,
+            completion_date=date.today()
+        ).count()
+        
+        return Response({
+            'total_routines': total_routines,
+            'active_routines': active_routines,
+            'paused_routines': paused_routines,
+            'completions_today': completions_today,
+            'completions_this_week': completions_this_week
+        })
+
+
+class UserScoreViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing user scores (read-only)
+    Scores are updated automatically when routines are completed
+    """
+    serializer_class = UserScoreSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return UserScore.objects.filter(user=self.request.user)
+    
+    @action(detail=False, methods=['get'])
+    def current(self, request):
+        """
+        GET /api/v1/scores/current/
+        Get current user's score
+        """
+        score, created = UserScore.objects.get_or_create(user=request.user)
+        serializer = self.get_serializer(score)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def history(self, request):
+        """
+        GET /api/v1/scores/history/
+        Get score history for current user
+        """
+        history = ScoreHistory.objects.filter(user=request.user)[:50]  # Last 50 entries
+        serializer = ScoreHistorySerializer(history, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def leaderboard(self, request):
+        """
+        GET /api/v1/scores/leaderboard/
+        Get top users by score (global leaderboard)
+        """
+        top_scores = UserScore.objects.select_related('user').order_by('-total_score')[:10]
+        
+        leaderboard_data = []
+        for idx, score in enumerate(top_scores, 1):
+            leaderboard_data.append({
+                'rank': idx,
+                'username': score.user.username,
+                'total_score': score.total_score,
+                'total_completions': score.total_completions,
+                'current_streak': score.current_streak
+            })
+        
+        serializer = LeaderboardSerializer(leaderboard_data, many=True)
+        return Response(serializer.data)
+
+
+class RoutineCompletionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing routine completions (read-only)
+    Completions are created via the RoutineViewSet.complete() action
+    """
+    serializer_class = RoutineCompletionSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return RoutineCompletion.objects.filter(user=self.request.user)
+    
+    @action(detail=False, methods=['get'])
+    def today(self, request):
+        """
+        GET /api/v1/completions/today/
+        Get completions for today
+        """
+        today = date.today()
+        completions = self.get_queryset().filter(completion_date=today)
+        serializer = self.get_serializer(completions, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def calendar(self, request):
+        """
+        GET /api/v1/completions/calendar/?month=2026-02
+        Get completions for a specific month (for calendar view)
+        """
+        month = request.query_params.get('month')  # Format: YYYY-MM
+        
+        if not month:
+            return Response(
+                {'error': 'month parameter required (format: YYYY-MM)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            year, month_num = month.split('-')
+            year, month_num = int(year), int(month_num)
+            
+            completions = self.get_queryset().filter(
+                completion_date__year=year,
+                completion_date__month=month_num
+            )
+            
+            serializer = self.get_serializer(completions, many=True)
+            return Response(serializer.data)
+            
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Invalid month format (use YYYY-MM)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )

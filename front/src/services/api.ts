@@ -258,3 +258,186 @@ async deleteTask(taskId: string | number) {
 }
 
 export const apiService = new APIService();
+
+// src/services/api.ts - COMPLETE API SERVICE
+
+import type {
+  Routine,
+  RoutinePayload,
+  RoutineCompletion,
+  UserScore,
+  ScoreHistory,
+  LeaderboardEntry,
+  CompleteRoutineResponse,
+  RoutineStatistics,
+  ApiError
+} from '../types/routine';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
+class ApiService {
+  private getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('vio-auth-token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Token ${token}` } : {})
+    };
+  }
+
+  private async handleResponse<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+      let error: ApiError;
+      try {
+        error = await response.json();
+      } catch {
+        error = { 
+          detail: response.status === 401 
+            ? 'Authentication required. Please log in.' 
+            : `HTTP ${response.status}: ${response.statusText}`
+        };
+      }
+      console.error('API Error:', error);
+      throw error;
+    }
+    
+    // Handle empty responses
+    const text = await response.text();
+    if (!text) {
+      return (response.status === 204 ? null : []) as T;
+    }
+    
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      console.error('Failed to parse JSON response:', text);
+      throw { detail: 'Invalid response from server' };
+    }
+  }
+
+  // ==================== ROUTINE ENDPOINTS ====================
+
+  async getRoutines(): Promise<Routine[]> {
+    const response = await fetch(`${API_BASE_URL}/routines/`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<Routine[]>(response);
+  }
+
+  async getTodayRoutines(): Promise<Routine[]> {
+    const response = await fetch(`${API_BASE_URL}/routines/today/`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<Routine[]>(response);
+  }
+
+  async getRoutine(id: number): Promise<Routine> {
+    const response = await fetch(`${API_BASE_URL}/routines/${id}/`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<Routine>(response);
+  }
+
+  async createRoutine(data: RoutinePayload): Promise<Routine> {
+    const response = await fetch(`${API_BASE_URL}/routines/`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return this.handleResponse<Routine>(response);
+  }
+
+  async updateRoutine(id: number, data: Partial<RoutinePayload>): Promise<Routine> {
+    const response = await fetch(`${API_BASE_URL}/routines/${id}/`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return this.handleResponse<Routine>(response);
+  }
+
+  async deleteRoutine(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/routines/${id}/`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders()
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete routine');
+    }
+  }
+
+  async completeRoutine(id: number): Promise<CompleteRoutineResponse> {
+    const response = await fetch(`${API_BASE_URL}/routines/${id}/complete/`, {
+      method: 'POST',
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<CompleteRoutineResponse>(response);
+  }
+
+  async toggleRoutinePause(id: number): Promise<{ detail: string; routine: Routine }> {
+    const response = await fetch(`${API_BASE_URL}/routines/${id}/toggle_pause/`, {
+      method: 'POST',
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<{ detail: string; routine: Routine }>(response);
+  }
+
+  async getRoutineStatistics(): Promise<RoutineStatistics> {
+    const response = await fetch(`${API_BASE_URL}/routines/statistics/`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<RoutineStatistics>(response);
+  }
+
+  // ==================== SCORE ENDPOINTS ====================
+
+  async getCurrentScore(): Promise<UserScore> {
+    const response = await fetch(`${API_BASE_URL}/scores/current/`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<UserScore>(response);
+  }
+
+  async getScoreHistory(): Promise<ScoreHistory[]> {
+    const response = await fetch(`${API_BASE_URL}/scores/history/`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<ScoreHistory[]>(response);
+  }
+
+  async getLeaderboard(): Promise<LeaderboardEntry[]> {
+    const response = await fetch(`${API_BASE_URL}/scores/leaderboard/`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<LeaderboardEntry[]>(response);
+  }
+
+  // ==================== COMPLETION ENDPOINTS ====================
+
+  async getCompletions(): Promise<RoutineCompletion[]> {
+    const response = await fetch(`${API_BASE_URL}/completions/`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<RoutineCompletion[]>(response);
+  }
+
+  async getTodayCompletions(): Promise<RoutineCompletion[]> {
+    const response = await fetch(`${API_BASE_URL}/completions/today/`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<RoutineCompletion[]>(response);
+  }
+
+  async getCalendarCompletions(month: string): Promise<RoutineCompletion[]> {
+    const response = await fetch(`${API_BASE_URL}/completions/calendar/?month=${month}`, {
+      headers: this.getAuthHeaders()
+    });
+    return this.handleResponse<RoutineCompletion[]>(response);
+  }
+}
+
+// Export singleton instance
+export const api = new ApiService();
+
+// Also export the class for testing
+export default ApiService;

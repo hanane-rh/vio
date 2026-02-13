@@ -380,3 +380,174 @@ class Notification(models.Model):
         
         # Fallback to stored avatar_image or icon
         return self.avatar_image or self.icon
+    
+# vio/models.py - UPDATED WITH ROUTINE AND SCORE SYSTEM
+from django.db import models
+from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
+from datetime import datetime, timedelta, date
+
+# ... (Keep all existing models: AvatarConfig, TreatmentInfo, TaskTemplate, Task, 
+#      UserProfile, UserState, ConstellationStar, FutureSelfMessage, Notification)
+# I'm only showing the NEW models to add:
+
+
+class Routine(models.Model):
+    """
+    User's routines - separate from TaskTemplates
+    This represents recurring activities with notifications
+    """
+    FREQUENCY_CHOICES = [
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('custom', 'Custom'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='routines')
+    
+    # Basic info
+    title = models.CharField(max_length=255)
+    time = models.TimeField()  # e.g., 09:00
+    frequency = models.CharField(max_length=50, choices=FREQUENCY_CHOICES, default='daily')
+    notes = models.TextField(blank=True)
+    
+    # Icon for display
+    icon = models.CharField(max_length=50, default='pill')  # pill, yoga, water, etc.
+    
+    # Weekly schedule (for 'weekly' frequency)
+    custom_days = models.JSONField(null=True, blank=True)  # [0,1,2,3,4,5,6] for days of week
+    
+    # Status
+    is_paused = models.BooleanField(default=False)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_completed = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        db_table = 'routines'
+        verbose_name = 'Routine'
+        ordering = ['time', 'title']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.title} ({self.frequency})"
+    
+    def should_run_today(self):
+        """Check if this routine should run today"""
+        if self.is_paused:
+            return False
+            
+        if self.frequency == 'daily':
+            return True
+        
+        if self.frequency == 'weekly' and self.custom_days:
+            today = datetime.now().weekday()  # 0=Monday, 6=Sunday
+            return today in self.custom_days
+        
+        return False
+
+
+class RoutineCompletion(models.Model):
+    """
+    Track when routines are completed
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='routine_completions')
+    routine = models.ForeignKey(Routine, on_delete=models.CASCADE, related_name='completions')
+    
+    completion_date = models.DateField()  # Date when completed
+    completed_at = models.DateTimeField(auto_now_add=True)  # Exact timestamp
+    
+    class Meta:
+        db_table = 'routine_completions'
+        verbose_name = 'Routine Completion'
+        unique_together = ('user', 'routine', 'completion_date')  # One completion per day
+        ordering = ['-completion_date', '-completed_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.routine.title} - {self.completion_date}"
+
+
+class UserScore(models.Model):
+    """
+    User's score/points system
+    Each completed routine = +5 points
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='score')
+    
+    total_score = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    
+    # Statistics
+    total_completions = models.IntegerField(default=0)  # Total routines completed
+    current_streak = models.IntegerField(default=0)  # Consecutive days with at least 1 completion
+    longest_streak = models.IntegerField(default=0)  # Best streak ever
+    
+    last_completion_date = models.DateField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'user_scores'
+        verbose_name = 'User Score'
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.total_score} points"
+    
+    def add_completion(self, completion_date=None):
+        """
+        Add points for completing a routine
+        Updates score, streak, and statistics
+        """
+        if completion_date is None:
+            completion_date = date.today()
+        
+        # Add 5 points
+        self.total_score += 5
+        self.total_completions += 1
+        
+        # Update streak
+        if self.last_completion_date:
+            days_diff = (completion_date - self.last_completion_date).days
+            
+            if days_diff == 1:
+                # Consecutive day
+                self.current_streak += 1
+            elif days_diff == 0:
+                # Same day, don't break streak but don't increment
+                pass
+            else:
+                # Streak broken
+                self.current_streak = 1
+        else:
+            # First completion
+            self.current_streak = 1
+        
+        # Update longest streak
+        if self.current_streak > self.longest_streak:
+            self.longest_streak = self.current_streak
+        
+        self.last_completion_date = completion_date
+        self.save()
+
+
+class ScoreHistory(models.Model):
+    """
+    Track score changes over time
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='score_history')
+    
+    points_earned = models.IntegerField(default=5)
+    reason = models.CharField(max_length=255)  # e.g., "Completed routine: Morning Medication"
+    routine = models.ForeignKey(Routine, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'score_history'
+        verbose_name = 'Score History'
+        verbose_name_plural = 'Score History'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - +{self.points_earned} - {self.reason}"

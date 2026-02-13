@@ -156,3 +156,77 @@ class NotificationSerializer(serializers.ModelSerializer):
             'shown_at',
         ]
         read_only_fields = ['id', 'created_at', 'shown_at']
+
+        # vio/serializers.py - ADD THESE TO YOUR EXISTING FILE
+
+from rest_framework import serializers
+from .models import Routine, RoutineCompletion, UserScore, ScoreHistory
+
+
+class RoutineSerializer(serializers.ModelSerializer):
+    """Serializer for Routine model"""
+    completion_dates = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Routine
+        fields = [
+            'id', 'title', 'time', 'frequency', 'notes', 'icon',
+            'custom_days', 'is_paused', 'created_at', 'updated_at',
+            'last_completed', 'completion_dates'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'last_completed']
+    
+    def get_completion_dates(self, obj):
+        """Get list of dates when this routine was completed"""
+        completions = obj.completions.values_list('completion_date', flat=True)
+        return [date.isoformat() for date in completions]
+
+
+class RoutineCompletionSerializer(serializers.ModelSerializer):
+    """Serializer for RoutineCompletion model"""
+    routine_title = serializers.CharField(source='routine.title', read_only=True)
+    
+    class Meta:
+        model = RoutineCompletion
+        fields = [
+            'id', 'routine', 'routine_title', 'completion_date', 'completed_at'
+        ]
+        read_only_fields = ['id', 'completed_at']
+
+
+class UserScoreSerializer(serializers.ModelSerializer):
+    """Serializer for UserScore model"""
+    username = serializers.CharField(source='user.username', read_only=True)
+    
+    class Meta:
+        model = UserScore
+        fields = [
+            'id', 'username', 'total_score', 'total_completions',
+            'current_streak', 'longest_streak', 'last_completion_date',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'total_score', 'total_completions', 'current_streak',
+            'longest_streak', 'last_completion_date', 'created_at', 'updated_at'
+        ]
+
+
+class ScoreHistorySerializer(serializers.ModelSerializer):
+    """Serializer for ScoreHistory model"""
+    routine_title = serializers.CharField(source='routine.title', read_only=True)
+    
+    class Meta:
+        model = ScoreHistory
+        fields = [
+            'id', 'points_earned', 'reason', 'routine', 'routine_title', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+
+
+class LeaderboardSerializer(serializers.Serializer):
+    """Serializer for leaderboard data"""
+    rank = serializers.IntegerField()
+    username = serializers.CharField()
+    total_score = serializers.IntegerField()
+    total_completions = serializers.IntegerField()
+    current_streak = serializers.IntegerField()

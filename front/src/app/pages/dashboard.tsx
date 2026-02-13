@@ -1,3 +1,4 @@
+// src/pages/dashboard.tsx - AVEC SCORE RÉEL DU BACKEND
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -9,6 +10,9 @@ import { useUser } from '../../context/user-context';
 import { toast } from 'sonner';
 import { Link } from 'react-router';
 import { apiService } from '../../services/api';
+
+// ✅ IMPORTER LE HOOK POUR LE SCORE RÉEL
+import { useUserScore } from '../../hooks/useRoutines';
 
 // Avatar characters with unlock requirements
 const AVATAR_CHARACTERS = [
@@ -39,22 +43,27 @@ interface Task {
 
 export function Dashboard() {
   const { profile } = useUser();
+  
+  // ✅ UTILISER LE HOOK POUR OBTENIR LE SCORE RÉEL
+  const { score, loading: scoreLoading, reload: reloadScore } = useUserScore();
+  
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState('avatar1');
   const [avatarName, setAvatarName] = useState('your future self');
-  const [points, setPoints] = useState(5); // User points
-  const [dayStreak, setDayStreak] = useState(0);
 
   // Initialize today's tasks from backend
   useEffect(() => {
     initializeTasks();
-    loadUserProgress();
     const savedName = localStorage.getItem('vio-onboarding-avatar-name');
-  if (savedName) {
-    setAvatarName(savedName);
-  }
+    if (savedName) {
+      setAvatarName(savedName);
+    }
+    
+    // Load selected avatar
+    const savedAvatar = localStorage.getItem('vio-selected-avatar');
+    if (savedAvatar) setSelectedAvatar(savedAvatar);
   }, []);
 
   // ✅ Load tasks from backend
@@ -69,43 +78,6 @@ export function Dashboard() {
       toast.error('Failed to load tasks');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // ✅ Load UI preferences (points, avatar, streak) - These can stay in localStorage as they're UI state
-  const loadUserProgress = () => {
-    // Get current user ID to scope localStorage
-    const userId = getUserId();
-    
-    const savedPoints = localStorage.getItem(`vio-user-points-${userId}`);
-    const savedAvatar = localStorage.getItem('vio-selected-avatar');
-    const savedStreak = localStorage.getItem(`vio-day-streak-${userId}`);
-    
-    if (savedPoints) setPoints(parseInt(savedPoints));
-    if (savedAvatar) setSelectedAvatar(savedAvatar);
-    if (savedStreak) setDayStreak(parseInt(savedStreak));
-  };
-
-  // Helper to get user ID
-  const getUserId = () => {
-    const profileStr = localStorage.getItem('vio-user-profile');
-    if (profileStr) {
-      try {
-        const profile = JSON.parse(profileStr);
-        return profile.user_id || profile.id || 'default';
-      } catch (e) {
-        return 'default';
-      }
-    }
-    return 'default';
-  };
-
-  // ✅ Save UI preferences with user ID scope
-  const saveUserProgress = (newPoints: number, newAvatar?: string) => {
-    const userId = getUserId();
-    localStorage.setItem(`vio-user-points-${userId}`, newPoints.toString());
-    if (newAvatar) {
-      localStorage.setItem('vio-selected-avatar', newAvatar);
     }
   };
 
@@ -124,9 +96,9 @@ export function Dashboard() {
       if (task && !task.completed) {
         // Award points for completing task
         const taskPoints = task.task_type === 'daily' ? 5 : 10;
-        const newPoints = points + taskPoints;
-        setPoints(newPoints);
-        saveUserProgress(newPoints);
+        
+        // ✅ Recharger le score depuis le backend
+        await reloadScore();
 
         toast.success(`+${taskPoints} points!`, {
           description: '✨ Great job completing this task!'
@@ -139,16 +111,18 @@ export function Dashboard() {
   };
 
 
-  // ✅ Avatar selection with persistence
+  // ✅ Avatar selection avec le score réel
   const handleAvatarSelect = (avatarId: string) => {
     const avatar = AVATAR_CHARACTERS.find(a => a.id === avatarId);
     if (!avatar) return;
 
-    const isUnlocked = avatar.requiredPoints === 0 || points >= avatar.requiredPoints;
+    // ✅ Utiliser le score réel du backend
+    const currentPoints = score?.total_score || 0;
+    const isUnlocked = avatar.requiredPoints === 0 || currentPoints >= avatar.requiredPoints;
     
     if (isUnlocked) {
       setSelectedAvatar(avatarId);
-      saveUserProgress(points, avatarId);
+      localStorage.setItem('vio-selected-avatar', avatarId);
       setShowAvatarModal(false);
       toast.success(`Avatar changed to ${avatar.name}! 🎉`);
     } else {
@@ -196,110 +170,140 @@ export function Dashboard() {
                 : 'border-slate-300 bg-white'
             }`}
           >
-            {task.completed && <CheckCircle className="w-4 h-4 text-white" fill="currentColor" />}
+            {task.completed && <CheckCircle className="w-4 h-4 text-white" />}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className={`font-semibold ${task.completed ? 'text-slate-600' : 'text-slate-800'}`}>
-                {task.title}
-              </h3>
-              {task.priority === 'high' && !task.completed && (
-                <Badge variant="outline" className="text-xs bg-rose-50 text-rose-600 border-rose-200">
-                  Important
+          <div className="flex-1">
+            <h3 className={`font-semibold ${task.completed ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
+              {task.title}
+            </h3>
+            <p className="text-sm text-slate-600 mt-1">{task.description}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant={task.task_type === 'daily' ? 'default' : 'secondary'} className="text-xs">
+                {task.task_type === 'daily' ? '📅 Daily' : '🎯 Challenge'}
+              </Badge>
+              {task.priority === 'high' && (
+                <Badge variant="destructive" className="text-xs">
+                  High Priority
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-slate-600 mt-1">{task.description}</p>
           </div>
         </div>
       </Card>
     </motion.div>
   );
 
-  if (!profile) return null;
-
   return (
     <div className="space-y-6">
-      {/* Header Section */}
+      {/* Header Section avec Score Badge */}
       <div className="flex items-start justify-between">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <h1 className="text-4xl font-bold text-slate-800 mb-2">
-            {getGreeting()}!
-          </h1>
-          <p className="text-lg text-slate-600">
-            I believe in you. Let's make today count.
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">{getGreeting()}, {profile?.first_name || 'Friend'}! 👋</h1>
+          <p className="text-slate-600 mt-1">
+            Let's check in on your healing journey today
           </p>
-        </motion.div>
-
-        {/* Avatar & Points Button */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center gap-3"
-        >
-          {/* Points Badge */}
-          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-100 to-amber-100 border-2 border-yellow-300 rounded-full">
+        </div>
+        
+        {/* Score Badge et Avatar en haut à droite */}
+        <div className="flex items-center gap-3">
+          {/* Badge de Score Réel */}
+          <div className="bg-yellow-100 border-2 border-yellow-300 rounded-2xl px-4 py-2 flex items-center gap-2">
             <Trophy className="w-5 h-5 text-yellow-600" />
-            <span className="font-bold text-yellow-700 text-lg">{points}</span>
+            <span className="text-xl font-bold text-yellow-700">
+              {scoreLoading ? '...' : (score?.total_score || 0)}
+            </span>
           </div>
-
-          {/* Avatar Button */}
-          <button
-  onClick={() => setShowAvatarModal(true)}
-  className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-400 flex items-center justify-center hover:scale-105 transition-transform shadow-lg border-3 overflow-hidden"
->
-  <img
-    src={currentAvatar.image}
-    alt={currentAvatar.name}
-    className="w-full h-full object-contain"
-    style={{ imageRendering: 'pixelated' }}
-  />
-</button>
-
-        </motion.div>
+          
+          {/* Avatar Cliquable */}
+          <div 
+            className="bg-teal-400 rounded-2xl p-2 cursor-pointer hover:bg-teal-500 transition-colors"
+            onClick={() => setShowAvatarModal(true)}
+          >
+            <img
+              src={currentAvatar.image}
+              alt={currentAvatar.name}
+              className="w-12 h-12 object-contain"
+              style={{ imageRendering: 'pixelated' }}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Progress Cards & Avatar Message */}
-<div className="grid lg:grid-cols-[1fr_580px] gap-6 items-start">
-  
-  {/* Left: Progress Cards (VERTICAL STACK) */}
-  <div className="flex flex-col gap-4">
+      {/* Stats Grid */}
+      <div className="grid md:grid-cols-3 gap-4">
+        {/* Left: Stats Cards */}
+        <div className="md:col-span-2 space-y-4">
+          {/* Mini Stats Cards Row */}
+          <div className="grid grid-cols-3 gap-4">
+            {/* Treatment Actions */}
+            <Card className="p-4 bg-gradient-to-br from-teal-50 to-emerald-50 border-teal-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-slate-800">
+                    5/5
+                  </div>
+                  <div className="text-xs text-slate-600">Treatment actions</div>
+                </div>
+              </div>
+            </Card>
 
-          <Card className="p-4 bg-gradient-to-br from-teal-50 to-emerald-50 border-teal-100 border-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-white" />
+            {/* Routines */}
+            <Card className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-slate-800">
+                    3/4
+                  </div>
+                  <div className="text-xs text-slate-600">Routines</div>
+                </div>
               </div>
-              <div>
-                <div className="text-2xl font-bold text-slate-800">{dailyCompleted}/{dailyTasks.length}</div>
-                <div className="text-xs text-slate-600">Treatment actions</div>
+            </Card>
+
+            {/* Today's Progress */}
+            <Card className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center">
+                  <StarIcon className="w-6 h-6 text-white" fill="currentColor" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-slate-800">
+                    75%
+                  </div>
+                  <div className="text-xs text-slate-600">Today's progress</div>
+                </div>
               </div>
+            </Card>
+          </div>
+
+          {/* Today's Progress Card - Déplacée sous les mini cartes */}
+          <Card className="p-6 bg-white/60 backdrop-blur-sm border-teal-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-teal-500" />
+                <h3 className="font-semibold text-slate-800">Detailed Progress</h3>
+              </div>
+              <span className="text-2xl font-bold text-teal-500">{totalCompleted}/{todayTasks.length}</span>
             </div>
-          </Card>
-
-          <Card className="p-4 bg-gradient-to-br from-violet-50 to-purple-50 border-violet-100 border-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400 to-purple-400 flex items-center justify-center ">
-                <Zap className="w-5 h-5 text-white" />
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-slate-600">Daily Tasks</span>
+                  <span className="font-medium">{dailyCompleted}/{dailyTasks.length}</span>
+                </div>
+                <Progress value={(dailyCompleted / dailyTasks.length) * 100} className="h-2" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-slate-800">{challengeCompleted}/{challengeTasks.length}</div>
-                <div className="text-xs text-slate-600">Routines</div>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-100 border-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center">
-                <StarIcon className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-slate-800">{Math.round(dailyProgress)}%</div>
-                <div className="text-xs text-slate-600">Today's progress</div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-slate-600">Challenges</span>
+                  <span className="font-medium">{challengeCompleted}/{challengeTasks.length}</span>
+                </div>
+                <Progress value={(challengeCompleted / challengeTasks.length) * 100} className="h-2 bg-purple-100" />
               </div>
             </div>
           </Card>
@@ -318,18 +322,18 @@ export function Dashboard() {
             </div>
             {/* Avatar */}
             <div className="w-29 h-29">
-  <img
-    src={currentAvatar.image}
-    alt={currentAvatar.name}
-    className="w-full h-full object-contain"
-    style={{ imageRendering: 'pixelated' }}
-  />
-</div>
+              <img
+                src={currentAvatar.image}
+                alt={currentAvatar.name}
+                className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform"
+                style={{ imageRendering: 'pixelated' }}
+                onClick={() => setShowAvatarModal(true)}
+              />
+            </div>
 
             <p className="text-sm font-medium text-slate-600">
-  {avatarName}
-</p>
-
+              {avatarName}
+            </p>
           </div>
         </Card>
       </div>
@@ -347,17 +351,19 @@ export function Dashboard() {
       </Card>
 
       {/* Day Streak Card */}
-      <Card className="p-4 bg-gradient-to-r from-orange-50 to-red-50 border-orange-100 border-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
-            <Flame className="w-5 h-5 text-white" />
+      {score && (
+        <Card className="p-4 bg-gradient-to-r from-orange-50 to-red-50 border-orange-100 border-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
+              <Flame className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-800">{score.current_streak}</div>
+              <div className="text-xs text-slate-600">Day Streak</div>
+            </div>
           </div>
-          <div>
-            <div className="text-2xl font-bold text-slate-800">{dayStreak}</div>
-            <div className="text-xs text-slate-600">Day Streak</div>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Quick Action Cards */}
       <div className="grid sm:grid-cols-2 gap-4">
@@ -429,7 +435,12 @@ export function Dashboard() {
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-800">select your future self character</h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">select your future self character</h2>
+                  {score && (
+                    <p className="text-sm text-slate-600 mt-1">You have {score.total_score} points</p>
+                  )}
+                </div>
                 <button
                   onClick={() => setShowAvatarModal(false)}
                   className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
@@ -441,7 +452,8 @@ export function Dashboard() {
               {/* Avatar Grid */}
               <div className="grid grid-cols-5 gap-4">
                 {AVATAR_CHARACTERS.map((avatar) => {
-                  const isUnlocked = avatar.requiredPoints === 0 || points >= avatar.requiredPoints;
+                  const currentPoints = score?.total_score || 0;
+                  const isUnlocked = avatar.requiredPoints === 0 || currentPoints >= avatar.requiredPoints;
                   const isSelected = avatar.id === selectedAvatar;
 
                   return (
@@ -465,14 +477,13 @@ export function Dashboard() {
 
                       {/* Avatar */}
                       <div className="w-20 h-20 mx-auto mb-2">
-  <img
-    src={avatar.image}
-    alt={avatar.name}
-    className="w-full h-full object-contain"
-    style={{ imageRendering: 'pixelated' }}
-  />
-</div>
-
+                        <img
+                          src={avatar.image}
+                          alt={avatar.name}
+                          className="w-full h-full object-contain"
+                          style={{ imageRendering: 'pixelated' }}
+                        />
+                      </div>
 
                       {/* Get/Unlock Button */}
                       <button

@@ -1,8 +1,8 @@
 # vio/urls.py
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import DefaultRouter # type: ignore
 from .views import (
-    NotificationViewSet, register, login, logout,
+    NotificationViewSet, RoutineCompletionViewSet, RoutineViewSet, UserScoreViewSet, register, login, logout,
     UserProfileViewSet, AvatarConfigViewSet, TreatmentInfoViewSet,
     TaskTemplateViewSet, TaskViewSet, UserStateViewSet,
     ConstellationStarViewSet, FutureSelfMessageViewSet
@@ -18,7 +18,10 @@ router.register(r'user-state', UserStateViewSet, basename='user-state')
 router.register(r'constellation', ConstellationStarViewSet, basename='constellation')
 router.register(r'messages', FutureSelfMessageViewSet, basename='message')
 router.register(r'notifications', NotificationViewSet, basename='notification')
-
+# NEW: Routine and Score endpoints
+router.register(r'routines', RoutineViewSet, basename='routine')
+router.register(r'scores', UserScoreViewSet, basename='score')
+router.register(r'completions', RoutineCompletionViewSet, basename='completion')
 urlpatterns = [
     # Auth
     path('auth/register/', register, name='register'),

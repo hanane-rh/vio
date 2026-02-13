@@ -1,5 +1,7 @@
+// src/pages/routine-builder.tsx - VERSION SANS LA LIGNE VERTE
+
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { Clock, Plus, Edit, Pause, Play, Calendar, CheckCircle, Circle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -9,30 +11,28 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
-import { toast } from 'sonner';
-import { RoutineTask, ROUTINE_ICONS, REMINDER_MESSAGES } from '../types/routine';
 
- const getUserId = () => {
-  const profileStr = localStorage.getItem('vio-user-profile');
-  if (profileStr) {
-    try {
-      const profile = JSON.parse(profileStr);
-      return profile.user_id || profile.id || 'default';
-    } catch (e) {
-      return 'default';
-    }
-  }
-  return 'default';
-};
+// ✅ USE HOOKS INSTEAD OF LOCALSTORAGE
+import { useRoutines, useUserScore } from '../../hooks/useRoutines';
+import { ROUTINE_ICONS, DAYS } from '../../types/routine';
+import type { Routine } from '../../types/routine';
+
 export function RoutineBuilder() {
-  const [routines, setRoutines] = useState<RoutineTask[]>(() => {
-  const userId = getUserId();  // ✅ Add getUserId function
-  const saved = localStorage.getItem(`vio-routines-${userId}`);  // ✅ User-scoped
-  return saved ? JSON.parse(saved) : [];
-});
+  // ✅ USE HOOKS
+  const { 
+    routines, 
+    loading, 
+    createRoutine, 
+    updateRoutine, 
+    deleteRoutine, 
+    completeRoutine, 
+    togglePause 
+  } = useRoutines();
+  
+  const { score, reload: reloadScore } = useUserScore();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingRoutine, setEditingRoutine] = useState<RoutineTask | null>(null);
+  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   
   // Form state
   const [title, setTitle] = useState('');
@@ -42,80 +42,27 @@ export function RoutineBuilder() {
   const [notes, setNotes] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('pill');
   const [avatarName, setAvatarName] = useState('your future self');
-const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.png');
-
-
-  useEffect(() => {
-  const userId = getUserId();
-  localStorage.setItem(`vio-routines-${userId}`, JSON.stringify(routines));
-}, [routines]);
-
-  // Check for upcoming routines and send notifications
-  useEffect(() => {
-    const checkRoutines = () => {
-      const now = new Date();
-      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      const currentDay = now.getDay();
-      const today = now.toISOString().split('T')[0];
-
-      routines.forEach(routine => {
-        if (routine.isPaused) return;
-
-        // Check if routine should run today
-        let shouldRunToday = false;
-        if (routine.frequency === 'daily') {
-          shouldRunToday = true;
-        } else if (routine.frequency === 'weekly' && routine.customDays?.includes(currentDay)) {
-          shouldRunToday = true;
-        }
-
-        // Check if it's time for the routine
-        if (shouldRunToday && routine.time === currentTime) {
-          // Check if already completed today
-          const completedToday = routine.completionDates?.includes(today);
-          
-          if (!completedToday) {
-            const message = REMINDER_MESSAGES[Math.floor(Math.random() * REMINDER_MESSAGES.length)];
-            toast.message(`🌿 ${routine.title}`, {
-              description: message,
-              duration: 8000,
-              action: {
-                label: 'Mark Complete',
-                onClick: () => completeRoutine(routine.id),
-              },
-            });
-          }
-        }
-      });
-    };
-
-    // Check every minute
-    const interval = setInterval(checkRoutines, 60000);
-    checkRoutines(); // Check immediately
-
-    return () => clearInterval(interval);
-  }, [routines]);
+  const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.png');
 
   useEffect(() => {
-  // Load custom avatar name
-  const savedName = localStorage.getItem('vio-onboarding-avatar-name');
-  if (savedName) setAvatarName(savedName);
+    // Load custom avatar name
+    const savedName = localStorage.getItem('vio-onboarding-avatar-name');
+    if (savedName) setAvatarName(savedName);
 
-  // Load selected avatar image
-  const savedAvatar = localStorage.getItem('vio-selected-avatar');
-  if (savedAvatar) {
-    setSelectedAvatarImage(`/assert/${savedAvatar}.png`);
-  }
-}, []);
+    // Load selected avatar image
+    const savedAvatar = localStorage.getItem('vio-selected-avatar');
+    if (savedAvatar) {
+      setSelectedAvatarImage(`/assert/${savedAvatar}.png`);
+    }
+  }, []);
 
-
-  const openDialog = (routine?: RoutineTask) => {
+  const openDialog = (routine?: Routine) => {
     if (routine) {
       setEditingRoutine(routine);
       setTitle(routine.title);
-      setTime(routine.time);
+      setTime(routine.time.slice(0, 5)); // Remove seconds
       setFrequency(routine.frequency);
-      setSelectedDays(routine.customDays || []);
+      setSelectedDays(routine.custom_days || []);
       setNotes(routine.notes || '');
       setSelectedIcon(routine.icon || 'pill');
     } else {
@@ -130,152 +77,138 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
     setIsDialogOpen(true);
   };
 
-  const saveRoutine = () => {
+  const saveRoutine = async () => {
     if (!title.trim()) {
-      toast.error('Please enter a task name');
       return;
     }
 
-    const routineData: RoutineTask = {
-      id: editingRoutine?.id || Date.now().toString(),
+    const routineData = {
       title: title.trim(),
-      time,
+      time: time + ':00', // Add seconds
       frequency,
-      customDays: frequency === 'weekly' ? selectedDays : undefined,
-      notes: notes.trim() || undefined,
+      custom_days: frequency === 'weekly' ? selectedDays : null,
+      notes: notes.trim() || '',
       icon: selectedIcon,
-      isPaused: editingRoutine?.isPaused || false,
-      createdAt: editingRoutine?.createdAt || new Date().toISOString(),
-      completionDates: editingRoutine?.completionDates || [],
     };
 
-    if (editingRoutine) {
-      setRoutines(prev => prev.map(r => r.id === editingRoutine.id ? routineData : r));
-      toast.success('Routine updated successfully');
-    } else {
-      setRoutines(prev => [...prev, routineData]);
-      toast.success('Routine created successfully', {
-        description: 'You will receive gentle reminders when it is time.',
-      });
-    }
-
-    setIsDialogOpen(false);
-  };
-
-  const togglePause = (id: string) => {
-    setRoutines(prev =>
-      prev.map(r =>
-        r.id === id ? { ...r, isPaused: !r.isPaused } : r
-      )
-    );
-    const routine = routines.find(r => r.id === id);
-    if (routine) {
-      toast.success(routine.isPaused ? 'Routine resumed' : 'Routine paused', {
-        description: routine.isPaused 
-          ? 'You will receive reminders again.' 
-          : 'No pressure — resume whenever you are ready.',
-      });
+    try {
+      if (editingRoutine) {
+        await updateRoutine(editingRoutine.id, routineData);
+      } else {
+        await createRoutine(routineData);
+      }
+      setIsDialogOpen(false);
+    } catch (error) {
+      // Error handled by hook
     }
   };
 
-  const completeRoutine = (id: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    setRoutines(prev =>
-      prev.map(r => {
-        if (r.id === id) {
-          const completionDates = r.completionDates || [];
-          if (!completionDates.includes(today)) {
-            return {
-              ...r,
-              lastCompleted: new Date().toISOString(),
-              completionDates: [...completionDates, today],
-            };
-          }
-        }
-        return r;
-      })
-    );
-
-    toast.success('Beautiful! Routine completed', {
-      description: 'Every small step supports your healing journey.',
-    });
+  const handleComplete = async (id: number) => {
+    try {
+      await completeRoutine(id);
+      reloadScore(); // Refresh score display
+    } catch (error) {
+      // Error handled by hook
+    }
   };
 
-  const deleteRoutine = (id: string) => {
-    setRoutines(prev => prev.filter(r => r.id !== id));
-    toast.success('Routine removed');
+  const handleTogglePause = async (id: number) => {
+    try {
+      await togglePause(id);
+    } catch (error) {
+      // Error handled by hook
+    }
   };
 
-  // Get today's routines
-  const today = new Date();
-  const todayDay = today.getDay();
-  const todayStr = today.toISOString().split('T')[0];
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteRoutine(id);
+    } catch (error) {
+      // Error handled by hook
+    }
+  };
 
-  const todaysRoutines = routines
-    .filter(r => {
-      if (r.isPaused) return false;
-      if (r.frequency === 'daily') return true;
-      if (r.frequency === 'weekly' && r.customDays?.includes(todayDay)) return true;
-      return false;
-    })
-    .sort((a, b) => a.time.localeCompare(b.time));
-
-  const getRoutineStatus = (routine: RoutineTask) => {
-    const completedToday = routine.completionDates?.includes(todayStr);
-    const currentTime = `${today.getHours().toString().padStart(2, '0')}:${today.getMinutes().toString().padStart(2, '0')}`;
+  // Filter today's routines
+  const todaysRoutines = routines.filter(routine => {
+    if (routine.is_paused) return false;
     
-    if (completedToday) return 'completed';
-    if (routine.time > currentTime) return 'upcoming';
-    return 'pending';
+    if (routine.frequency === 'daily') return true;
+    
+    if (routine.frequency === 'weekly' && routine.custom_days) {
+      const today = new Date().getDay();
+      return routine.custom_days.includes(today);
+    }
+    
+    return false;
+  });
+
+  // Get routine status
+  const getRoutineStatus = (routine: Routine): 'completed' | 'ready' | 'upcoming' => {
+    const today = new Date().toISOString().split('T')[0];
+    if (routine.completion_dates.includes(today)) {
+      return 'completed';
+    }
+    
+    const now = new Date();
+    const routineTime = new Date();
+    const [hours, minutes] = routine.time.split(':');
+    routineTime.setHours(parseInt(hours), parseInt(minutes), 0);
+    
+    return now >= routineTime ? 'ready' : 'upcoming';
   };
 
-  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading routines...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative space-y-8">
-        {/* Floating Avatar Guide */}
-<div className="hidden lg:flex absolute top-0 right-10 flex-col items-center text-center z-10">
-  
-  {/* Speech Bubble */}
-  <div className="relative bg-white px-5 py-3 rounded-2xl shadow-sm border border-pink-200 max-w-[220px]">
-    <p className="text-sm text-slate-700 leading-relaxed italic">
-      "Check your routines, they are important for your treatment progress!"
-    </p>
+      {/* Floating Avatar Guide */}
+      <div className="hidden lg:flex absolute top-0 right-20 flex-col items-center text-center z-10">
+        {/* Speech Bubble */}
+        <div className="relative bg-white px-5 py-3 rounded-2xl shadow-sm border border-pink-200 max-w-[220px]">
+          <p className="text-sm text-slate-700 leading-relaxed italic">
+            "Check your routines, they are important for your treatment progress!"
+          </p>
 
-    {/* Pointer */}
-    <div className="absolute -bottom-2 right-45 w-4 h-4 bg-white border-r border-b border-pink-200 rotate-45"></div>
-  </div>
-</div>
-<div className="hidden lg:flex absolute top-27 right-45 flex-col items-center text-center z-10">
-  {/* Avatar */}
-  <div className="w-35 h-35 mt-2">
-    <img
-      src={selectedAvatarImage}
-      alt={avatarName}
-      className="w-full h-full object-contain"
-      style={{ imageRendering: 'pixelated' }}
-    />
-  </div>
-</div>
+          {/* Pointer */}
+          <div className="absolute -bottom-2 right-45 w-4 h-4 bg-white border-r border-b border-pink-200 rotate-45"></div>
+        </div>
+      </div>
+      <div className="hidden lg:flex absolute top-25 right-50 flex-col items-center text-center z-10">
+        {/* Avatar */}
+        <div className="w-35 h-35 mt-2">
+          <img
+            src={selectedAvatarImage}
+            alt={avatarName}
+            className="w-full h-full object-contain"
+            style={{ imageRendering: 'pixelated' }}
+          />
+        </div>
+      </div>
 
-      {/* Header */}
+      {/* ❌ LIGNE VERTE SUPPRIMÉE - La section score a été retirée */}
+
+      {/* Header with Create Button */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center lg:text-left space-y-4 pr-0 lg:pr-56"
+        className="pr-0 lg:pr-56"
       >
-        
-        <h1 className="text-4xl font-bold text-slate-800">Treatment Routine Builder</h1>
-        <p className="text-lg text-slate-600 max-w-2xl">
-          Organize your healing journey with gentle, supportive routines. Set your own pace — we are here to guide, not pressure.
-        </p>
-      </motion.div>
+        <div className="mb-6">
+          <h1 className="text-4xl font-bold text-slate-800">Treatment Routine Builder</h1>
+          <p className="text-lg text-slate-600 max-w-2xl mt-2">
+            Organize your healing journey with gentle, supportive routines. Set your own pace — we are here to guide, not pressure.
+          </p>
+        </div>
 
-      {/* Add Routine Button */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-      >
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button
@@ -296,7 +229,7 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              {/* Task Name */}
+              {/* Title */}
               <div>
                 <Label htmlFor="title">Task Name</Label>
                 <Input
@@ -306,27 +239,6 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
                   placeholder="e.g., Take evening medication"
                   className="mt-1"
                 />
-              </div>
-
-              {/* Icon */}
-              <div>
-                <Label>Icon (Optional)</Label>
-                <div className="grid grid-cols-5 gap-2 mt-2">
-                  {ROUTINE_ICONS.map((icon) => (
-                    <button
-                      key={icon.value}
-                      onClick={() => setSelectedIcon(icon.value)}
-                      className={`p-3 rounded-lg border-2 text-2xl transition-all ${
-                        selectedIcon === icon.value
-                          ? 'border-teal-400 bg-teal-50'
-                          : 'border-slate-200 hover:border-teal-200'
-                      }`}
-                      title={icon.label}
-                    >
-                      {icon.emoji}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Time */}
@@ -349,31 +261,32 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="daily">Every day</SelectItem>
-                    <SelectItem value="weekly">Specific days of the week</SelectItem>
+                    <SelectItem value="daily">Every Day</SelectItem>
+                    <SelectItem value="weekly">Specific Days</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Days Selection */}
+              {/* Days (for weekly) */}
               {frequency === 'weekly' && (
                 <div>
                   <Label>Select Days</Label>
                   <div className="grid grid-cols-7 gap-2 mt-2">
-                    {DAYS.map((day, index) => (
+                    {DAYS.map((day, idx) => (
                       <button
-                        key={index}
+                        key={idx}
+                        type="button"
                         onClick={() => {
-                          setSelectedDays(prev =>
-                            prev.includes(index)
-                              ? prev.filter(d => d !== index)
-                              : [...prev, index]
-                          );
+                          if (selectedDays.includes(idx)) {
+                            setSelectedDays(selectedDays.filter(d => d !== idx));
+                          } else {
+                            setSelectedDays([...selectedDays, idx]);
+                          }
                         }}
-                        className={`p-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                          selectedDays.includes(index)
-                            ? 'border-teal-400 bg-teal-50 text-teal-700'
-                            : 'border-slate-200 text-slate-600 hover:border-teal-200'
+                        className={`p-2 rounded-lg text-sm font-medium transition-all ${
+                          selectedDays.includes(idx)
+                            ? 'bg-teal-500 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                       >
                         {day}
@@ -382,6 +295,28 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
                   </div>
                 </div>
               )}
+
+              {/* Icon */}
+              <div>
+                <Label>Icon (Optional)</Label>
+                <div className="grid grid-cols-5 gap-2 mt-2">
+                  {ROUTINE_ICONS.map((icon) => (
+                    <button
+                      key={icon.value}
+                      type="button"
+                      onClick={() => setSelectedIcon(icon.value)}
+                      className={`p-3 rounded-lg border-2 text-2xl transition-all ${
+                        selectedIcon === icon.value
+                          ? 'border-teal-400 bg-teal-50'
+                          : 'border-slate-200 hover:border-teal-200'
+                      }`}
+                      title={icon.label}
+                    >
+                      {icon.emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Notes */}
               <div>
@@ -416,8 +351,7 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
           </DialogContent>
         </Dialog>
       </motion.div>
-      <br></br>
-      <br></br>
+
       {/* Today's Routines */}
       <div>
         <h2 className="text-2xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -464,7 +398,7 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
                           {icon?.emoji || '✓'}
                         </div>
                         <Badge variant="outline" className="text-xs whitespace-nowrap">
-                          {routine.time}
+                          {routine.time.slice(0, 5)}
                         </Badge>
                       </div>
 
@@ -493,9 +427,9 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => togglePause(routine.id)}
+                              onClick={() => handleTogglePause(routine.id)}
                             >
-                              {routine.isPaused ? (
+                              {routine.is_paused ? (
                                 <Play className="w-4 h-4" />
                               ) : (
                                 <Pause className="w-4 h-4" />
@@ -523,7 +457,7 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
                               </Badge>
                               <Button
                                 size="sm"
-                                onClick={() => completeRoutine(routine.id)}
+                                onClick={() => handleComplete(routine.id)}
                                 className="bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-500 hover:to-emerald-500"
                               >
                                 Mark Complete +5pts
@@ -551,17 +485,17 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
               return (
                 <Card
                   key={routine.id}
-                  className={`p-4 ${routine.isPaused ? 'opacity-60' : ''}`}
+                  className={`p-4 ${routine.is_paused ? 'opacity-60' : ''}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="text-2xl">{icon?.emoji || '✓'}</div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-slate-800">{routine.title}</h3>
                       <p className="text-sm text-slate-600 mt-1">
-                        {routine.time} · {routine.frequency === 'daily' ? 'Daily' : 
-                          routine.customDays?.map(d => DAYS[d]).join(', ')}
+                        {routine.time.slice(0, 5)} · {routine.frequency === 'daily' ? 'Daily' : 
+                          routine.custom_days?.map(d => DAYS[d]).join(', ')}
                       </p>
-                      {routine.isPaused && (
+                      {routine.is_paused && (
                         <Badge variant="outline" className="mt-2 text-xs">
                           Paused
                         </Badge>
@@ -570,7 +504,7 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => deleteRoutine(routine.id)}
+                      onClick={() => handleDelete(routine.id)}
                       className="text-rose-500 hover:text-rose-600 hover:bg-rose-50"
                     >
                       Remove
