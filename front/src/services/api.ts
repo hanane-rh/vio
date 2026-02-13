@@ -162,6 +162,16 @@ class APIService {
   async regenerateFutureTasks() {
     return this.axiosInstance.post('/task-templates/regenerate_future_tasks/');
   }
+// ============ TASK ENDPOINTS ============
+// Create a task for today only
+async createTask(data: { title: string; date: string }) {
+  return this.axiosInstance.post('/tasks/', data);
+}
+
+
+async deleteTask(taskId: string | number) {
+  return this.axiosInstance.delete(`/tasks/${taskId}/`);
+}
 
   // ============ TASK ENDPOINTS ============
 

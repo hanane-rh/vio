@@ -9,6 +9,7 @@ import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { AvatarDisplay } from '../components/avatar-display';
 import { useUser } from '../../context/user-context';
+import { apiService } from '../../services/api';
 
 interface TreatmentAction {
   id: string;
@@ -71,16 +72,8 @@ const FUTURE_SELF_MESSAGES: FutureSelfMessage[] = [
 
 export function FutureSelfDialogue() {
   const { profile } = useUser();
-  const [actions, setActions] = useState<TreatmentAction[]>(() => {
-    const saved = localStorage.getItem('carepath-actions');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', title: 'Morning medication', completed: false },
-      { id: '2', title: 'Physical therapy exercises', completed: false },
-      { id: '3', title: 'Evening medication', completed: false },
-      { id: '4', title: 'Meditation session', completed: false },
-      { id: '5', title: 'Health journal entry', completed: false },
-    ];
-  });
+  const [actions, setActions] = useState<TreatmentAction[]>([]);
+const [isLoading, setIsLoading] = useState(true);
 
   const [unlockedMessages, setUnlockedMessages] = useState<number[]>(() => {
     const saved = localStorage.getItem('carepath-unlocked-messages');
@@ -95,13 +88,32 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
   const progress = (completedCount / actions.length) * 100;
   const overallProgress = Math.min(progress, 100); // Scale up for demo
 
-  useEffect(() => {
-    localStorage.setItem('carepath-actions', JSON.stringify(actions));
-  }, [actions]);
+  const getUserId = () => {
+    const profileStr = localStorage.getItem('vio-user-profile');
+    if (profileStr) {
+      try {
+        const profile = JSON.parse(profileStr);
+        return profile.user_id || profile.id || 'default';
+      } catch (e) {
+        return 'default';
+      }
+    }
+    return 'default';
+  };
 
-  useEffect(() => {
-    localStorage.setItem('carepath-unlocked-messages', JSON.stringify(unlockedMessages));
-  }, [unlockedMessages]);
+// ✅ For unlocked messages (UI state), use user-scoped keys
+useEffect(() => {
+  const userId = getUserId();
+  const saved = localStorage.getItem(`vio-unlocked-messages-${userId}`);
+  if (saved) {
+    setUnlockedMessages(JSON.parse(saved));
+  }
+}, []);
+
+useEffect(() => {
+  const userId = getUserId();
+  localStorage.setItem(`vio-unlocked-messages-${userId}`, JSON.stringify(unlockedMessages));
+}, [unlockedMessages]);
 
   useEffect(() => {
     // Check for newly unlocked messages
@@ -111,6 +123,8 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
       }
     });
   }, [overallProgress, unlockedMessages]);
+
+  
     useEffect(() => {
   // Load custom avatar name
   const savedName = localStorage.getItem('vio-onboarding-avatar-name');
@@ -122,56 +136,102 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
     setSelectedAvatarImage(`/assert/${savedAvatar}.png`);
   }
 }, []);
+useEffect(() => {
+  loadActionsFromBackend();
+}, []);
 
-  const toggleAction = (id: string) => {
-    const action = actions.find(a => a.id === id);
-    const wasCompleted = action?.completed;
+const loadActionsFromBackend = async () => {
+  try {
+    setIsLoading(true);
+    const response = await apiService.getTodayTasks();
+
+    const mappedActions = response.data.map((task: any) => ({
+      id: task.id.toString(),
+      title: task.title,
+      completed: task.completed,
+      date: task.completed_at || undefined,
+    }));
+
+    setActions(mappedActions);
+  } catch (error) {
+    console.error('Error loading actions:', error);
+    toast.error('Failed to load tasks');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+  const toggleAction = async (id: string) => {
+  try {
+    // ✅ Call backend API
+    const response = await apiService.toggleTaskCompletion(id);
     
+    // Update local state
     setActions(prev =>
-      prev.map(action =>
-        action.id === id
-          ? { ...action, completed: !action.completed, date: !action.completed ? new Date().toISOString() : undefined }
-          : action
+      prev.map(a =>
+        a.id === id ? {
+          ...a,
+          completed: response.data.completed,
+          date: response.data.completed_at
+        } : a
       )
     );
 
-    // Show encouraging toast when completing an action
-    if (!wasCompleted) {
-      const encouragements = [
-        "Beautiful! Your future self is smiling.",
-        "You're doing it! Another step closer.",
-        "Wonderful progress. Keep going!",
-        "Your dedication is inspiring. ✨",
-        "Amazing work! You're becoming stronger.",
-        "Amazing work! You're becoming stronger.",
-        "Amazing work! You're becoming stronger.",
-      ];
-      toast.success(encouragements[Math.floor(Math.random() * encouragements.length)]);
-    }
-  };
+    // Show toast...
+  } catch (error) {
+    console.error('Error toggling action:', error);
+    toast.error('Failed to update task');
+  }
+};
 
-  const deleteAction = (id: string) => {
+  const deleteAction = async (id: string) => {
+  try {
+    await apiService.deleteTask(id);
     setActions(prev => prev.filter(action => action.id !== id));
     toast.success('Task deleted');
-  };
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    toast.error('Failed to delete task');
+  }
+};
 
-  const addTask = () => {
-    if (!newTaskTitle.trim()) {
-      toast.error('Please enter a task title');
-      return;
-    }
 
+  const addTask = async () => {
+  if (!newTaskTitle.trim()) {
+    toast.error('Please enter a task title');
+    return;
+  }
+
+  const today = new Date().toISOString().split('T')[0]; // e.g., "2026-02-13"
+
+  try {
+    // Call backend to create task
+    const response = await apiService.createTask({
+      title: newTaskTitle.trim(),
+      date: today, // today only
+    });
+
+    // Add task to local state
     const newTask: TreatmentAction = {
-      id: Date.now().toString(),
-      title: newTaskTitle,
-      completed: false,
+      id: response.data.id.toString(),
+      title: response.data.title,
+      completed: response.data.completed,
+      date: response.data.date,
     };
 
     setActions(prev => [...prev, newTask]);
     setNewTaskTitle('');
     setIsEditModalOpen(false);
     toast.success('Task added!');
-  };
+  } catch (error) {
+    console.error('Error adding task:', error);
+    toast.error('Failed to add task');
+  }
+};
+
+
+
 
   const silhouetteOpacity = Math.min(overallProgress / 100, 1);
   const silhouetteClarity = overallProgress > 50 ? 'grayscale-0' : 'grayscale';

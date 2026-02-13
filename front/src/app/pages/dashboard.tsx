@@ -57,40 +57,59 @@ export function Dashboard() {
   }
   }, []);
 
+  // ✅ Load tasks from backend
   const initializeTasks = async () => {
     try {
       setIsLoading(true);
       const response = await apiService.initializeTodayTasks();
       setTasks(response.data.tasks || []);
+      console.log('✅ Loaded tasks from backend:', response.data.tasks?.length);
     } catch (error: any) {
-      console.error('Error initializing tasks:', error);
-      // Fallback to local state
-      const saved = localStorage.getItem('carepath-daily-tasks');
-      if (saved) {
-        setTasks(JSON.parse(saved));
-      }
+      console.error('❌ Error loading tasks:', error);
+      toast.error('Failed to load tasks');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // ✅ Load UI preferences (points, avatar, streak) - These can stay in localStorage as they're UI state
   const loadUserProgress = () => {
-    const savedPoints = localStorage.getItem('vio-user-points');
+    // Get current user ID to scope localStorage
+    const userId = getUserId();
+    
+    const savedPoints = localStorage.getItem(`vio-user-points-${userId}`);
     const savedAvatar = localStorage.getItem('vio-selected-avatar');
-    const savedStreak = localStorage.getItem('vio-day-streak');
+    const savedStreak = localStorage.getItem(`vio-day-streak-${userId}`);
     
     if (savedPoints) setPoints(parseInt(savedPoints));
     if (savedAvatar) setSelectedAvatar(savedAvatar);
     if (savedStreak) setDayStreak(parseInt(savedStreak));
   };
 
+  // Helper to get user ID
+  const getUserId = () => {
+    const profileStr = localStorage.getItem('vio-user-profile');
+    if (profileStr) {
+      try {
+        const profile = JSON.parse(profileStr);
+        return profile.user_id || profile.id || 'default';
+      } catch (e) {
+        return 'default';
+      }
+    }
+    return 'default';
+  };
+
+  // ✅ Save UI preferences with user ID scope
   const saveUserProgress = (newPoints: number, newAvatar?: string) => {
-    localStorage.setItem('vio-user-points', newPoints.toString());
+    const userId = getUserId();
+    localStorage.setItem(`vio-user-points-${userId}`, newPoints.toString());
     if (newAvatar) {
       localStorage.setItem('vio-selected-avatar', newAvatar);
     }
   };
 
+  // ✅ Toggle task on backend
   const toggleTask = async (id: string) => {
     try {
       const response = await apiService.toggleTaskCompletion(id);
@@ -114,16 +133,17 @@ export function Dashboard() {
         });
       }
     } catch (error: any) {
-      console.error('Error toggling task:', error);
+      console.error('❌ Error toggling task:', error);
       toast.error('Failed to update task');
     }
   };
 
+
+  // ✅ Avatar selection with persistence
   const handleAvatarSelect = (avatarId: string) => {
     const avatar = AVATAR_CHARACTERS.find(a => a.id === avatarId);
     if (!avatar) return;
 
-    // Check if avatar is unlocked
     const isUnlocked = avatar.requiredPoints === 0 || points >= avatar.requiredPoints;
     
     if (isUnlocked) {

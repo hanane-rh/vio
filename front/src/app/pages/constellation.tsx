@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { AvatarDisplay } from '../components/avatar-display';
 import { useUser } from '../../context/user-context';
 import { AVATAR_MESSAGES } from '../types/avatar';
+import { apiService } from '../../services/api';
+
 
 interface ConstellationStar {
   id: string;
@@ -31,10 +33,9 @@ const STAR_TYPES = {
 
 export function Constellation() {
   const { profile } = useUser();
-  const [stars, setStars] = useState<ConstellationStar[]>(() => {
-    const saved = localStorage.getItem('carepath-constellation');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [stars, setStars] = useState<ConstellationStar[]>([]);
+const [isLoadingStars, setIsLoadingStars] = useState(true);
+
 
   const [selectedStar, setSelectedStar] = useState<ConstellationStar | null>(null);
   const [newStarType, setNewStarType] = useState<string>('difficult-day');
@@ -54,10 +55,7 @@ useEffect(() => {
 }, []);
 
 
-  useEffect(() => {
-    localStorage.setItem('carepath-constellation', JSON.stringify(stars));
-  }, [stars]);
-
+  
   // Show avatar message about constellation growth periodically
   useEffect(() => {
     if (stars.length > 0 && stars.length % 5 === 0) {
@@ -99,31 +97,78 @@ const currentAvatar =
   AVATAR_CHARACTERS.find(a => a.id === selectedAvatar) ||
   AVATAR_CHARACTERS[0];
 
+const loadStars = async () => {
+  try {
+    setIsLoadingStars(true);
+    const response = await apiService.getConstellationStars();
 
-  const addStar = () => {
-    if (!newStarNote.trim()) return;
+    console.log('Stars API response:', response.data);
 
-    const newStar: ConstellationStar = {
-      id: Date.now().toString(),
-      x: Math.random() * 70 + 15, // 15-85% of width
-      y: Math.random() * 70 + 10, // 10-80% of height
-      date: new Date().toISOString(),
-      type: newStarType as any,
-      mood: newStarMood,
-      note: newStarNote,
-      size: Math.random() * 0.5 + 0.75, // 0.75-1.25
-    };
+    const starsData = Array.isArray(response.data)
+      ? response.data
+      : response.data.results || [];
+    const mappedStars = starsData.map((s: any) => ({
+  id: s.id?.toString(),
+  x: s.x,
+  y: s.y,
+  date: s.date || s.created_at,
+  type: s.star_type, // 🔥 important mapping
+  mood: s.mood,
+  note: s.note,
+  size: s.size || 1,
+}));
 
-    setStars(prev => [...prev, newStar]);
+setStars(mappedStars);
+  } catch (error) {
+    console.error('Failed to load stars:', error);
+    toast.error('Failed to load your constellation');
+  } finally {
+    setIsLoadingStars(false);
+  }
+};
+
+useEffect(() => {
+  loadStars();
+}, []);
+
+  const addStar = async () => {
+  if (!newStarNote.trim()) return;
+
+  try {
+    const payload = {
+  x: Math.random() * 70 + 15,
+  y: Math.random() * 70 + 10,
+  star_type: newStarType, // 🔥 FIXED
+  mood: newStarMood,
+  note: newStarNote,
+  size: Math.random() * 0.5 + 0.75,
+};
+
+
+    await apiService.createConstellationStar(payload);
+
+    // 🔥 reload from backend (source of truth)
+    await loadStars();
+
     setNewStarNote('');
     setNewStarMood('');
     setIsAddingDialogOpen(false);
 
-    // Celebration toast
     toast.success('✨ Star added to your constellation!', {
       description: 'Your resilience journey grows more beautiful.',
     });
-  };
+  } catch (error: any) {
+  console.error('Failed to create star:', error);
+  console.error('Backend response:', error?.response?.data);
+
+  toast.error(
+    error?.response?.data?.detail ||
+    'Failed to add star'
+  );
+}
+
+};
+
 
   const getConnectionLines = () => {
     const lines: { x1: number; y1: number; x2: number; y2: number }[] = [];

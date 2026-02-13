@@ -12,11 +12,24 @@ import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import { RoutineTask, ROUTINE_ICONS, REMINDER_MESSAGES } from '../types/routine';
 
+ const getUserId = () => {
+  const profileStr = localStorage.getItem('vio-user-profile');
+  if (profileStr) {
+    try {
+      const profile = JSON.parse(profileStr);
+      return profile.user_id || profile.id || 'default';
+    } catch (e) {
+      return 'default';
+    }
+  }
+  return 'default';
+};
 export function RoutineBuilder() {
   const [routines, setRoutines] = useState<RoutineTask[]>(() => {
-    const saved = localStorage.getItem('carepath-routines');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const userId = getUserId();  // ✅ Add getUserId function
+  const saved = localStorage.getItem(`vio-routines-${userId}`);  // ✅ User-scoped
+  return saved ? JSON.parse(saved) : [];
+});
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<RoutineTask | null>(null);
@@ -33,8 +46,9 @@ const [selectedAvatarImage, setSelectedAvatarImage] = useState('/assert/avatar1.
 
 
   useEffect(() => {
-    localStorage.setItem('carepath-routines', JSON.stringify(routines));
-  }, [routines]);
+  const userId = getUserId();
+  localStorage.setItem(`vio-routines-${userId}`, JSON.stringify(routines));
+}, [routines]);
 
   // Check for upcoming routines and send notifications
   useEffect(() => {
